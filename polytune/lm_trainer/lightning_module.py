@@ -1,0 +1,183 @@
+import logging
+import os
+from argparse import Namespace
+
+import pytorch_lightning as pl
+import torch
+from polytune.data import Collater, create_concat_dataset
+from polytune.utils import mask_tokens
+from torch.utils.data import DataLoader
+from transformers import AdamW, get_linear_schedule_with_warmup
+
+logger = logging.getLogger(__name__)
+
+
+class LMTrainingModuleConfig(Namespace):
+    def __init__(
+            self,
+            mlm=True,
+            mlm_prob=0.15,
+            save_path=None,
+            weight_decay=0.0,
+            learning_rate=5e-5,
+            adam_epsilon=1e-8,
+            warmup_steps=0,
+            batch_size=32,
+            num_workers=0,
+            shuffle=True,
+    ):
+        super().__init___(mlm=mlm,
+                          mlm_prob=mlm_prob,
+                          save_path=save_path,
+                          weight_decay=weight_decay,
+                          learning_rate=learning_rate,
+                          adam_epsilon=adam_epsilon,
+                          warmup_steps=warmup_steps,
+                          batch_size=batch_size,
+                          num_workers=num_workers,
+                          shuffle=shuffle)
+
+
+class LMTrainingModule(pl.LightningModule):
+    def __init__(self, model, tokenizer, config):
+        super().__init__()
+        self.config = config
+        self.hparams = config
+
+        self.tokenizer = tokenizer
+
+        self.pad_token_id = self.tokenizer.encode("[PAD]").ids[0]
+        self.mask_token_id = self.tokenizer.encode("[MASK]").ids[0]
+
+        # TODO set self.vocab_size
+
+        self.model = model
+
+    def forward(self, inputs, labels):
+        if self.config.mlm:
+            outputs = self.model(inputs, masked_lm_labels=labels)
+        else:
+            outputs = self.model(inputs, labels=labels)
+        return outputs
+
+    def training_step(self, batch, batch_idx):
+        if self.config.mlm:
+            inputs, special_tokens_mask = batch
+            inputs, labels = mask_tokens(inputs, special_tokens_mask,
+                                         self.pad_token_id, self.mask_token_id,
+                                         self.vocab_size, self.config.mlm_prob)
+            inputs, labels = mask_tokens(batch, self.tokenizer,
+                                         self.config.mlm_prob)
+        else:
+            inputs, labels = (batch, batch)
+
+        outputs = self.forward(inputs, labels)
+        loss = outputs[0]
+        tensorboard_logs = {'train_loss': loss}
+        return {'loss': loss, 'log': tensorboard_logs}
+
+    def validation_step(self, batch, batch_idx):
+        if self.config.mlm:
+            inputs, special_tokens_mask = batch
+            inputs, labels = mask_tokens(inputs, special_tokens_mask,
+                                         self.pad_token_id, self.mask_token_id,
+                                         self.vocab_size, self.config.mlm_prob)
+            inputs, labels = mask_tokens(batch, self.tokenizer,
+                                         self.config.mlm_prob)
+        else:
+            inputs, labels = (batch, batch)
+
+        outputs = self.forward(inputs, labels)
+        loss = outputs[0]
+
+        return {'val_loss': loss}
+
+    def validation_end(self, outputs):
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+
+        perplexity = torch.exp(torch.tensor(avg_loss))
+
+        output_dir = os.path.join(self.config.save_path,
+                                  f"{self.current_epoch}-{self.global_step}")
+        model_to_save = (self.model.module
+                         if hasattr(self.model, "module") else self.model)
+        model_to_save.save_pretrained(output_dir)
+
+        if hasattr(self.tokenizer, 'save_pretrained'):
+            self.tokenizer.save_pretrained(output_dir)
+        else:
+            self.tokenizer.save(output_dir)
+
+        tensorboard_logs = {'val_loss': avg_loss, 'perplexity': perplexity}
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+
+    def configure_optimizers(self):
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [
+                    p for n, p in self.model.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
+                "weight_decay":
+                self.config.weight_decay,
+            },
+            {
+                "params": [
+                    p for n, p in self.model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
+                "weight_decay":
+                0.0
+            },
+        ]
+
+        t_total = len(self.train_dataloader()) // self.config.batch_size
+        t_total = t_total // self.config.accumulate_grad_batches
+
+        optimizer = AdamW(optimizer_grouped_parameters,
+                          lr=self.config.learning_rate,
+                          eps=self.config.adam_epsilon)
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=self.config.warmup_steps,
+            num_training_steps=t_total)
+
+        return [optimizer], [scheduler]
+
+    @property
+    def is_distributed(self):
+        if hasattr(self, 'trainer') and self.trainer.distributed_backend:
+            return 'ddp' in self.trainer.distributed_backend
+        return False
+
+    def get_dataloader(self, paths):
+        dataset = create_concat_dataset(self.tokenizer, paths)
+
+        if hasattr(self, 'is_distributed') and self.is_distributed:
+            dist_sampler = torch.utils.data.distributed.DistributedSampler(
+                dataset)
+        else:
+            dist_sampler = None
+
+        collater = Collater(
+            self.pad_token_id)  # the default ignored idx for CrossEntropy
+
+        return DataLoader(dataset,
+                          batch_size=self.config.batch_size,
+                          num_workers=self.config.num_workers,
+                          collate_fn=collater,
+                          sampler=dist_sampler,
+                          shuffle=self.config.shuffle)
+
+    @pl.data_loader
+    def train_dataloader(self):
+        return self.get_dataloader(self.config.train_paths)
+
+    @pl.data_loader
+    def val_dataloader(self):
+        return self.get_dataloader(self.config.val_paths)
+
+    @pl.data_loader
+    def test_dataloader(self):
+        return self.get_dataloader(self.config.test_paths)
