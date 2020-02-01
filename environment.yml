@@ -1,0 +1,16 @@
+---
+
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - flake8=3.5.0
+  - jupyter=1.0.0
+  - pandas=0.25.0
+  - pep8-naming==0.7.0
+  - pytest=3.8.2
+  - requests=2.19.1
+  - pip
+  - pip:
+      - pytorch-lightning==0.5.3
