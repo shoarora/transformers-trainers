@@ -5,7 +5,6 @@ from argparse import Namespace
 import pytorch_lightning as pl
 import torch
 from polytune.data import Collater, create_concat_dataset
-from polytune.utils import mask_tokens
 from torch.utils.data import DataLoader
 from transformers import AdamW, get_linear_schedule_with_warmup
 
@@ -15,6 +14,7 @@ logger = logging.getLogger(__name__)
 class LMTrainingModuleConfig(Namespace):
     def __init__(
             self,
+            data_path,
             mlm=True,
             mlm_prob=0.15,
             save_path=None,
@@ -26,16 +26,17 @@ class LMTrainingModuleConfig(Namespace):
             num_workers=0,
             shuffle=True,
     ):
-        super().__init___(mlm=mlm,
-                          mlm_prob=mlm_prob,
-                          save_path=save_path,
-                          weight_decay=weight_decay,
-                          learning_rate=learning_rate,
-                          adam_epsilon=adam_epsilon,
-                          warmup_steps=warmup_steps,
-                          batch_size=batch_size,
-                          num_workers=num_workers,
-                          shuffle=shuffle)
+        super().__init__(data_path=data_path,
+                         mlm=mlm,
+                         mlm_prob=mlm_prob,
+                         save_path=save_path,
+                         weight_decay=weight_decay,
+                         learning_rate=learning_rate,
+                         adam_epsilon=adam_epsilon,
+                         warmup_steps=warmup_steps,
+                         batch_size=batch_size,
+                         num_workers=num_workers,
+                         shuffle=shuffle)
 
 
 class LMTrainingModule(pl.LightningModule):
@@ -48,8 +49,7 @@ class LMTrainingModule(pl.LightningModule):
 
         self.pad_token_id = self.tokenizer.encode("[PAD]").ids[0]
         self.mask_token_id = self.tokenizer.encode("[MASK]").ids[0]
-
-        # TODO set self.vocab_size
+        self.vocab_size = self.tokenizer.vocab_size
 
         self.model = model
 
@@ -61,32 +61,14 @@ class LMTrainingModule(pl.LightningModule):
         return outputs
 
     def training_step(self, batch, batch_idx):
-        if self.config.mlm:
-            inputs, special_tokens_mask = batch
-            inputs, labels = mask_tokens(inputs, special_tokens_mask,
-                                         self.pad_token_id, self.mask_token_id,
-                                         self.vocab_size, self.config.mlm_prob)
-            inputs, labels = mask_tokens(batch, self.tokenizer,
-                                         self.config.mlm_prob)
-        else:
-            inputs, labels = (batch, batch)
-
+        inputs, labels = batch
         outputs = self.forward(inputs, labels)
         loss = outputs[0]
         tensorboard_logs = {'train_loss': loss}
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        if self.config.mlm:
-            inputs, special_tokens_mask = batch
-            inputs, labels = mask_tokens(inputs, special_tokens_mask,
-                                         self.pad_token_id, self.mask_token_id,
-                                         self.vocab_size, self.config.mlm_prob)
-            inputs, labels = mask_tokens(batch, self.tokenizer,
-                                         self.config.mlm_prob)
-        else:
-            inputs, labels = (batch, batch)
-
+        inputs, labels = batch
         outputs = self.forward(inputs, labels)
         loss = outputs[0]
 
@@ -160,8 +142,11 @@ class LMTrainingModule(pl.LightningModule):
         else:
             dist_sampler = None
 
-        collater = Collater(
-            self.pad_token_id)  # the default ignored idx for CrossEntropy
+        collater = Collater(mlm=self.config.mlm,
+                            mlm_prob=self.config.mlm_prob,
+                            pad_token_id=self.pad_token_id,
+                            mask_token_id=self.mask_token_id,
+                            vocab_size=self.vocab_size)
 
         return DataLoader(dataset,
                           batch_size=self.config.batch_size,
@@ -172,12 +157,15 @@ class LMTrainingModule(pl.LightningModule):
 
     @pl.data_loader
     def train_dataloader(self):
-        return self.get_dataloader(self.config.train_paths)
+        path = os.path.join(self.config.data_path, 'train')
+        return self.get_dataloader(path)
 
     @pl.data_loader
     def val_dataloader(self):
-        return self.get_dataloader(self.config.val_paths)
+        path = os.path.join(self.config.data_path, 'val')
+        return self.get_dataloader(path)
 
     @pl.data_loader
     def test_dataloader(self):
-        return self.get_dataloader(self.config.test_paths)
+        path = os.path.join(self.config.data_path, 'test')
+        return self.get_dataloader(path)

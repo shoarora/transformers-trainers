@@ -1,20 +1,38 @@
 import torch
+from polytune.utils import mask_tokens
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import ConcatDataset, Dataset
 
 
 class Collater():
-    def __init__(self, pad_token_id=None, cls_token_id=None):
+    def __init__(self,
+                 mlm=True,
+                 mlm_prob=0.15,
+                 pad_token_id=None,
+                 mask_token_id=None,
+                 vocab_size=None,
+                 cls_token_id=None):
+        self.mlm = mlm
+        self.mlm_prob = mlm_prob
         self.pad_token_id = pad_token_id
+        self.mask_token_id = mask_token_id
+        self.vocab_size = vocab_size
         self.cls_token_id = None
 
-        # TODO do batch_encode?
-
     def __call__(self, examples):
+        # TODO do we need other attributes like attention_mask?
+        # TODO how to make this backward compatible with the old tokenizers?
         inputs, special_tokens_masks = zip(*examples)
         inputs = self._pad_sequence(inputs)
         special_tokens_masks = self._pad_sequence(special_tokens_masks)
-        return inputs, special_tokens_masks
+
+        if self.mlm:
+            labels = mask_tokens(inputs, special_tokens_masks,
+                                 self.pad_token_id, self.mask_token_id,
+                                 self.vocab_size, self.config.mlm_prob)
+            return inputs, labels
+        else:
+            return inputs, inputs
 
     def _pad_sequence(self, inputs):
         if self.pad_token_id is None:

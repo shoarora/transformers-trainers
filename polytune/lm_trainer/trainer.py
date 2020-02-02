@@ -28,7 +28,8 @@ class LMTrainer:
         self.model = model
         self.tokenizer = tokenizer
 
-        config = LMTrainingModuleConfig(mlm=mlm,
+        config = LMTrainingModuleConfig(data_path=data_path,
+                                        mlm=mlm,
                                         mlm_prob=mlm_prob,
                                         save_path=save_path,
                                         weight_decay=weight_decay,
