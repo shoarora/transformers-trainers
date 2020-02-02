@@ -24,7 +24,8 @@ class LMTrainer:
                  max_nb_epochs=50,
                  fast_dev_run=False,
                  use_amp=False,
-                 amp_level='O2'):
+                 amp_level='O2',
+                 val_check_interval=0.25):
         self.model = model
         self.tokenizer = tokenizer
 
@@ -49,7 +50,8 @@ class LMTrainer:
             max_nb_epochs=max_nb_epochs,
             fast_dev_run=fast_dev_run,
             use_amp=use_amp,
-            amp_level=amp_level)
+            amp_level=amp_level,
+            val_check_interval=val_check_interval)
 
     def fit(self):
         return self.trainer.fit(self.training_module)
