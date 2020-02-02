@@ -27,9 +27,9 @@ class Collater():
         special_tokens_masks = self._pad_sequence(special_tokens_masks)
 
         if self.mlm:
-            labels = mask_tokens(inputs, special_tokens_masks,
+            inputs, labels = mask_tokens(inputs, special_tokens_masks,
                                  self.pad_token_id, self.mask_token_id,
-                                 self.vocab_size, self.config.mlm_prob)
+                                 self.vocab_size, self.mlm_prob)
             return inputs, labels
         else:
             return inputs, inputs

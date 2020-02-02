@@ -25,6 +25,7 @@ class LMTrainingModuleConfig(Namespace):
             batch_size=32,
             num_workers=0,
             shuffle=True,
+            accumulate_grad_batches=1,
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
@@ -36,7 +37,8 @@ class LMTrainingModuleConfig(Namespace):
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
-                         shuffle=shuffle)
+                         shuffle=shuffle,
+                         accumulate_grad_batches=accumulate_grad_batches)
 
 
 class LMTrainingModule(pl.LightningModule):
@@ -77,10 +79,12 @@ class LMTrainingModule(pl.LightningModule):
     def validation_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
 
-        perplexity = torch.exp(torch.tensor(avg_loss))
+        perplexity = torch.exp(avg_loss)
 
         output_dir = os.path.join(self.config.save_path,
                                   f"{self.current_epoch}-{self.global_step}")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         model_to_save = (self.model.module
                          if hasattr(self.model, "module") else self.model)
         model_to_save.save_pretrained(output_dir)
@@ -88,7 +92,7 @@ class LMTrainingModule(pl.LightningModule):
         if hasattr(self.tokenizer, 'save_pretrained'):
             self.tokenizer.save_pretrained(output_dir)
         else:
-            self.tokenizer.save(output_dir)
+            self.tokenizer.save(output_dir, 'tokenizer')
 
         tensorboard_logs = {'val_loss': avg_loss, 'perplexity': perplexity}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
@@ -133,7 +137,8 @@ class LMTrainingModule(pl.LightningModule):
             return 'ddp' in self.trainer.distributed_backend
         return False
 
-    def get_dataloader(self, paths):
+    def get_dataloader(self, path):
+        paths = [os.path.join(path, name) for name in os.listdir(path)]
         dataset = create_concat_dataset(self.tokenizer, paths)
 
         if hasattr(self, 'is_distributed') and self.is_distributed:

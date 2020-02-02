@@ -38,7 +38,8 @@ class LMTrainer:
                                         warmup_steps=warmup_steps,
                                         batch_size=batch_size,
                                         num_workers=num_workers,
-                                        shuffle=shuffle)
+                                        shuffle=shuffle,
+                                        accumulate_grad_batches=accumulate_grad_batches)
 
         self.training_module = LMTrainingModule(model, tokenizer, config)
         self.trainer = pl.Trainer(
@@ -51,4 +52,4 @@ class LMTrainer:
             amp_level=amp_level)
 
     def fit(self):
-        return self.trainer.fit(self.model)
+        return self.trainer.fit(self.training_module)
