@@ -54,7 +54,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.pad_token_id = self.tokenizer.encode("[PAD]").ids[0]
         self.mask_token_id = self.tokenizer.encode("[MASK]").ids[0]
-        self.vocab_size = self.tokenizer.vocab_size
+        self.vocab_size = self.tokenizer._tokenizer.get_vocab_size()
 
         self.generator = generator
         self.discriminator = discriminator
