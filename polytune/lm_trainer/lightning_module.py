@@ -17,6 +17,7 @@ class LMTrainingModuleConfig(Namespace):
             data_path,
             mlm=True,
             mlm_prob=0.15,
+            max_seq_len=128,
             save_path=None,
             weight_decay=0.0,
             learning_rate=5e-5,
@@ -29,6 +30,7 @@ class LMTrainingModuleConfig(Namespace):
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
+                         max_seq_len=max_seq_len,
                          mlm_prob=mlm_prob,
                          save_path=save_path,
                          weight_decay=weight_decay,
@@ -49,10 +51,12 @@ class LMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
-        self.pad_token_id = self.tokenizer.encode("[PAD]").ids[0]
-        self.mask_token_id = self.tokenizer.encode("[MASK]").ids[0]
-        self.vocab_size = self.tokenizer._tokenizer.get_vocab_size()
+        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.vocab_size = self.model.config.vocab_size
 
+        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
+                                      max_length=config.max_seq_len)
         self.model = model
 
     def forward(self, inputs, labels):
@@ -151,7 +155,8 @@ class LMTrainingModule(pl.LightningModule):
                             mlm_prob=self.config.mlm_prob,
                             pad_token_id=self.pad_token_id,
                             mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size)
+                            vocab_size=self.vocab_size,
+                            max_seq_len=self.config.max_seq_len)
 
         return DataLoader(dataset,
                           batch_size=self.config.batch_size,

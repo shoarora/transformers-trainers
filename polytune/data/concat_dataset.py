@@ -11,25 +11,27 @@ class Collater():
                  pad_token_id=None,
                  mask_token_id=None,
                  vocab_size=None,
-                 cls_token_id=None):
+                 cls_token_id=None,
+                 max_seq_len=128):
         self.mlm = mlm
         self.mlm_prob = mlm_prob
         self.pad_token_id = pad_token_id
         self.mask_token_id = mask_token_id
         self.vocab_size = vocab_size
         self.cls_token_id = None
+        self.max_seq_len = max_seq_len
 
     def __call__(self, examples):
         # TODO do we need other attributes like attention_mask?
         # TODO how to make this backward compatible with the old tokenizers?
         inputs, special_tokens_masks = zip(*examples)
-        inputs = self._pad_sequence(inputs)
-        special_tokens_masks = self._pad_sequence(special_tokens_masks)
+        # inputs = self._pad_sequence(inputs)
+        # special_tokens_masks = self._pad_sequence(special_tokens_masks)
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
-                                 self.pad_token_id, self.mask_token_id,
-                                 self.vocab_size, self.mlm_prob)
+                                         self.pad_token_id, self.mask_token_id,
+                                         self.vocab_size, self.mlm_prob)
             return inputs, labels
         else:
             return inputs, inputs

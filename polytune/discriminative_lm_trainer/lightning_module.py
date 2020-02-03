@@ -14,26 +14,26 @@ logger = logging.getLogger(__name__)
 
 
 class DiscLMTrainingModuleConfig(Namespace):
-    def __init__(
-            self,
-            data_path,
-            d_loss_weight=50,
-            mlm=True,
-            mlm_prob=0.15,
-            save_path=None,
-            weight_decay=0.0,
-            learning_rate=5e-5,
-            adam_epsilon=1e-8,
-            warmup_steps=0,
-            batch_size=32,
-            num_workers=0,
-            shuffle=True,
-            accumulate_grad_batches=1
-    ):
+    def __init__(self,
+                 data_path,
+                 d_loss_weight=50,
+                 mlm=True,
+                 mlm_prob=0.15,
+                 save_path=None,
+                 max_seq_len=128,
+                 weight_decay=0.0,
+                 learning_rate=5e-5,
+                 adam_epsilon=1e-8,
+                 warmup_steps=0,
+                 batch_size=32,
+                 num_workers=0,
+                 shuffle=True,
+                 accumulate_grad_batches=1):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
                          mlm=mlm,
                          mlm_prob=mlm_prob,
+                         max_seq_len=max_seq_len,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
@@ -54,9 +54,12 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
-        self.pad_token_id = self.tokenizer.encode("[PAD]").ids[0]
-        self.mask_token_id = self.tokenizer.encode("[MASK]").ids[0]
-        self.vocab_size = self.tokenizer._tokenizer.get_vocab_size()
+        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.vocab_size = self.generator.config.vocab_size
+
+        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
+                                      max_length=config.max_seq_len)
 
         self.generator = generator
         self.discriminator = discriminator
@@ -159,8 +162,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        model_to_save = (model.module
-                         if hasattr(model, "module") else model)
+        model_to_save = (model.module if hasattr(model, "module") else model)
         model_to_save.save_pretrained(output_dir)
 
     def configure_optimizers(self):
@@ -223,7 +225,8 @@ class DiscLMTrainingModule(pl.LightningModule):
                             mlm_prob=self.config.mlm_prob,
                             pad_token_id=self.pad_token_id,
                             mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size)
+                            vocab_size=self.vocab_size,
+                            max_seq_len=self.config.max_seq_len)
 
         return DataLoader(dataset,
                           batch_size=self.config.batch_size,
