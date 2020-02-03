@@ -1,6 +1,11 @@
+import logging
+import os
+
 import pytorch_lightning as pl
 
 from .lightning_module import DiscLMTrainingModule, DiscLMTrainingModuleConfig
+
+logger = logging.getLogger(__name__)
 
 
 class DiscLMTrainer:
@@ -31,6 +36,10 @@ class DiscLMTrainer:
         self.discriminator = discriminator
         self.tokenizer = tokenizer
 
+        logging.debug('checking data_path contents')
+        self.check_data_path(data_path)
+
+        logging.debug('creating module config')
         config = DiscLMTrainingModuleConfig(data_path=data_path,
                                             mlm=mlm,
                                             mlm_prob=mlm_prob,
@@ -43,8 +52,10 @@ class DiscLMTrainer:
                                             num_workers=num_workers,
                                             shuffle=shuffle)
 
+        logging.debug('creating training module')
         self.training_module = DiscLMTrainingModule(generator, discriminator,
                                                     tokenizer, config)
+        logging.debug('creating pytorch-lightning trainer')
         self.trainer = pl.Trainer(
             accumulate_grad_batches=accumulate_grad_batches,
             gpus=gpus,
@@ -56,4 +67,13 @@ class DiscLMTrainer:
             val_check_interval=val_check_interval)
 
     def fit(self):
+        logging.info(f"generator: {self.generator}")
+        logging.info(f"discriminator: {self.discriminator}")
         return self.trainer.fit(self.training_module)
+
+    def check_data_path(self, data_path):
+        expected_data_dirs = ['train', 'val', 'test']
+        data_dir_contents = os.listdir(data_path)
+        for expected in expected_data_dirs:
+            assert expected in data_dir_contents
+            assert os.path.isdir(os.path.join(data_path, expected))
