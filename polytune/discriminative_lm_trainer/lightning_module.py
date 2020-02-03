@@ -28,6 +28,7 @@ class DiscLMTrainingModuleConfig(Namespace):
             batch_size=32,
             num_workers=0,
             shuffle=True,
+            accumulate_grad_batches=1
     ):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
@@ -40,7 +41,8 @@ class DiscLMTrainingModuleConfig(Namespace):
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
-                         shuffle=shuffle)
+                         shuffle=shuffle,
+                         accumulate_grad_batches=accumulate_grad_batches)
 
 
 class DiscLMTrainingModule(pl.LightningModule):
@@ -60,6 +62,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         self.discriminator = discriminator
 
     def forward(self, inputs, labels):
+        d_inputs, d_labels = inputs.clone(), labels.clone()
         g_out = self.generator(inputs, masked_lm_labels=labels)
 
         preds = torch.argmax(g_out[1], dim=-1)
@@ -68,29 +71,28 @@ class DiscLMTrainingModule(pl.LightningModule):
         mask = labels.eq(-100)
 
         # replace the masked out tokens of the input with the generator predictions.
-        inputs[mask] = preds[mask]
+        d_inputs[mask] = preds[mask]
 
         # turn mask into new target labels.  1 (True) for corrupted, 0 otherwise.
         # if the prediction was correct, mark it as uncorrupted.
         correct_preds = preds == labels
-        labels[correct_preds] = False
-        labels = mask.long()
+        d_labels[correct_preds] = False
+        d_labels = mask.long()
 
-        d_out = self.discriminator(inputs, labels)
-        return g_out, d_out
+        d_out = self.discriminator(d_inputs, labels=d_labels)
+        return g_out, d_out, d_labels
 
     def training_step(self, batch, batch_idx):
         inputs, labels = batch
-        g_out, d_out = self.forward(inputs, labels)
+        g_out, d_out, d_labels = self.forward(inputs, labels)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
 
         scores = d_out[1]
         preds = torch.argmax(scores, dim=-1)
-        d_labels = labels.eq(-100).long()
-        acc = torch.sum(preds == d_labels).item() / (np.prod(d_labels.shape) *
-                                                     1.0)
+        acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
+        acc = torch.tensor(acc)
 
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
 
@@ -103,17 +105,16 @@ class DiscLMTrainingModule(pl.LightningModule):
         return {'loss': total_loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels = batch
-        g_out, d_out = self.forward(inputs, labels)
+        inputs, labels, = batch
+        g_out, d_out, d_labels = self.forward(inputs, labels)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
 
         scores = d_out[1]
         preds = torch.argmax(scores, dim=-1)
-        d_labels = labels.eq(-100).long()
-        acc = torch.sum(preds == d_labels).item() / (np.prod(d_labels.shape) *
-                                                     1.0)
+        acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
+        acc = torch.tensor(acc)
 
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
         return {
@@ -136,6 +137,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         output_dir = os.path.join(self.config.save_path,
                                   f"{self.current_epoch}-{self.global_step}")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         if hasattr(self.tokenizer, 'save_pretrained'):
             self.tokenizer.save_pretrained(output_dir)
         else:
@@ -157,7 +160,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             os.makedirs(output_dir)
 
         model_to_save = (model.module
-                         if hasattr(self.model, "module") else self.model)
+                         if hasattr(model, "module") else model)
         model_to_save.save_pretrained(output_dir)
 
     def configure_optimizers(self):
@@ -180,7 +183,7 @@ class DiscLMTrainingModule(pl.LightningModule):
                     if any(nd in n for nd in no_decay)
                 ] + [
                     p for n, p in self.discriminator.named_parameters()
-                    if not any(nd in n for nd in no_decay)
+                    if any(nd in n for nd in no_decay)
                 ],
                 "weight_decay":
                 0.0
@@ -206,7 +209,8 @@ class DiscLMTrainingModule(pl.LightningModule):
             return 'ddp' in self.trainer.distributed_backend
         return False
 
-    def get_dataloader(self, paths):
+    def get_dataloader(self, path):
+        paths = [os.path.join(path, name) for name in os.listdir(path)]
         dataset = create_concat_dataset(self.tokenizer, paths)
 
         if hasattr(self, 'is_distributed') and self.is_distributed:

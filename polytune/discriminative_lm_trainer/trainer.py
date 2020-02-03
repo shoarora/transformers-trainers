@@ -50,7 +50,8 @@ class DiscLMTrainer:
                                             warmup_steps=warmup_steps,
                                             batch_size=batch_size,
                                             num_workers=num_workers,
-                                            shuffle=shuffle)
+                                            shuffle=shuffle,
+                                            accumulate_grad_batches=accumulate_grad_batches)
 
         logging.debug('creating training module')
         self.training_module = DiscLMTrainingModule(generator, discriminator,
