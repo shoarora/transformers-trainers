@@ -8,20 +8,20 @@ from torch.utils.data import ConcatDataset, Dataset
 
 class Collater():
     def __init__(self,
+                 tokenizer,
                  mlm=True,
                  mlm_prob=0.15,
                  pad_token_id=None,
                  mask_token_id=None,
                  vocab_size=None,
-                 cls_token_id=None,
-                 max_seq_len=128):
+                 cls_token_id=None):
+        self.tokenizer = tokenizer
         self.mlm = mlm
         self.mlm_prob = mlm_prob
         self.pad_token_id = pad_token_id
         self.mask_token_id = mask_token_id
         self.vocab_size = vocab_size
         self.cls_token_id = None
-        self.max_seq_len = max_seq_len
 
     def __call__(self, examples):
         # TODO how to make this backward compatible with the old tokenizers?
