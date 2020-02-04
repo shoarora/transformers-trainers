@@ -227,7 +227,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         else:
             dist_sampler = None
 
-        collater = Collater(self.tokenizer
+        collater = Collater(self.tokenizer,
                             mlm=self.config.mlm,
                             mlm_prob=self.config.mlm_prob,
                             pad_token_id=self.pad_token_id,

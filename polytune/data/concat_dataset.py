@@ -34,11 +34,11 @@ class Collater():
             attention_masks.append(e.attention_mask)
             special_tokens_masks.append(e.special_tokens_mask)
 
-        inputs = torch.tensor(np.array(ids), dtype=torch.long)
-        attention_masks = torch.tensor(np.array(attention_masks),
+        inputs = torch.tensor(ids, dtype=torch.long)
+        attention_masks = torch.tensor(attention_masks,
                                        dtype=torch.long)
-        special_tokens_masks = torch.tensor(np.array(special_tokens_masks),
-                                            dtype=torch.long)
+        special_tokens_masks = torch.tensor(special_tokens_masks,
+                                            dtype=torch.bool)
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
