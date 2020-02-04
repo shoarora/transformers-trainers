@@ -59,23 +59,27 @@ class LMTrainingModule(pl.LightningModule):
                                       max_length=config.max_seq_len)
         self.model = model
 
-    def forward(self, inputs, labels):
+    def forward(self, inputs, labels, attention_mask):
         if self.config.mlm:
-            outputs = self.model(inputs, masked_lm_labels=labels)
+            outputs = self.model(inputs,
+                                 masked_lm_labels=labels,
+                                 attention_mask=attention_mask)
         else:
-            outputs = self.model(inputs, labels=labels)
+            outputs = self.model(inputs,
+                                 labels=labels,
+                                 attention_mask=attention_mask)
         return outputs
 
     def training_step(self, batch, batch_idx):
-        inputs, labels = batch
-        outputs = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
         tensorboard_logs = {'train_loss': loss}
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels = batch
-        outputs = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
 
         return {'val_loss': loss}

@@ -67,9 +67,11 @@ class DiscLMTrainingModule(pl.LightningModule):
         self.generator = generator
         self.discriminator = discriminator
 
-    def forward(self, inputs, labels):
+    def forward(self, inputs, labels, attention_mask):
         d_inputs, d_labels = inputs.clone(), labels.clone()
-        g_out = self.generator(inputs, masked_lm_labels=labels)
+        g_out = self.generator(inputs,
+                               masked_lm_labels=labels,
+                               attention_mask=attention_mask)
 
         preds = torch.argmax(g_out[1], dim=-1)
 
@@ -85,12 +87,14 @@ class DiscLMTrainingModule(pl.LightningModule):
         d_labels[correct_preds] = False
         d_labels = mask.long()
 
-        d_out = self.discriminator(d_inputs, labels=d_labels)
+        d_out = self.discriminator(d_inputs,
+                                   labels=d_labels,
+                                   attention_mask=attention_mask)
         return g_out, d_out, d_labels
 
     def training_step(self, batch, batch_idx):
-        inputs, labels = batch
-        g_out, d_out, d_labels = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        g_out, d_out, d_labels = self.forward(inputs, labels, attention_mask)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
@@ -113,8 +117,8 @@ class DiscLMTrainingModule(pl.LightningModule):
         return {'loss': total_loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels, = batch
-        g_out, d_out, d_labels = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        g_out, d_out, d_labels = self.forward(inputs, labels, attention_mask)
 
         g_loss = g_out[0]
         d_loss = d_out[0]

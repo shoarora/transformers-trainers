@@ -1,3 +1,5 @@
+import numpy as np
+
 import torch
 from polytune.utils import mask_tokens
 from torch.nn.utils.rnn import pad_sequence
@@ -22,19 +24,29 @@ class Collater():
         self.max_seq_len = max_seq_len
 
     def __call__(self, examples):
-        # TODO do we need other attributes like attention_mask?
         # TODO how to make this backward compatible with the old tokenizers?
-        inputs, special_tokens_masks = zip(*examples)
-        # inputs = self._pad_sequence(inputs)
-        # special_tokens_masks = self._pad_sequence(special_tokens_masks)
+        encodings = self.tokenizer.encode_batch(examples)
+        ids = []
+        attention_masks = []
+        special_tokens_masks = []
+        for e in encodings:
+            ids.append(e.ids)
+            attention_masks.append(e.attention_mask)
+            special_tokens_masks.append(e.special_tokens_mask)
+
+        inputs = torch.tensor(np.array(ids), dtype=torch.long)
+        attention_masks = torch.tensor(np.array(attention_masks),
+                                       dtype=torch.long)
+        special_tokens_masks = torch.tensor(np.array(special_tokens_masks),
+                                            dtype=torch.long)
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
                                          self.pad_token_id, self.mask_token_id,
                                          self.vocab_size, self.mlm_prob)
-            return inputs, labels
+            return inputs, labels, attention_masks
         else:
-            return inputs, inputs
+            return inputs, inputs, attention_masks
 
     def _pad_sequence(self, inputs):
         if self.pad_token_id is None:
@@ -54,7 +66,6 @@ def create_concat_dataset(tokenizer, paths):
 
 class LineByLineDataset(Dataset):
     def __init__(self, tokenizer, path):
-        self.tokenizer = tokenizer
         self.path = path
         with open(path) as f:
             self.len = len(f.readlines())
@@ -68,12 +79,7 @@ class LineByLineDataset(Dataset):
             with open(self.path) as f:
                 self.lines = f.readlines()
         item = self.lines[i]
-
-        out = self.tokenizer.encode(item)
-        ids = out.ids
-        special_tokens_mask = out.special_tokens_mask
         if i == len(self.lines):
             self.lines = None
 
-        return torch.tensor(ids), torch.tensor(special_tokens_mask,
-                                               dtype=torch.bool)
+        return item
