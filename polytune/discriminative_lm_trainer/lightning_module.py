@@ -63,6 +63,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.tokenizer.enable_padding(pad_id=self.pad_token_id,
                                       max_length=config.max_seq_len)
+        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
+                                         strategy='only_first')
 
         self.generator = generator
         self.discriminator = discriminator
