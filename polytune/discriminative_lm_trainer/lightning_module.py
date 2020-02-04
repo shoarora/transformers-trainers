@@ -56,7 +56,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
         self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
-        self.vocab_size = self.generator.config.vocab_size
+        self.vocab_size = generator.config.vocab_size
 
         self.tokenizer.enable_padding(pad_id=self.pad_token_id,
                                       max_length=config.max_seq_len)
