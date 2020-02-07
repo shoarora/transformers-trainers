@@ -56,17 +56,21 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
         self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
-        self.vocab_size = self.generator.config.vocab_size
+        self.vocab_size = generator.config.vocab_size
 
         self.tokenizer.enable_padding(pad_id=self.pad_token_id,
                                       max_length=config.max_seq_len)
+        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
+                                         strategy='only_first')
 
         self.generator = generator
         self.discriminator = discriminator
 
-    def forward(self, inputs, labels):
+    def forward(self, inputs, labels, attention_mask):
         d_inputs, d_labels = inputs.clone(), labels.clone()
-        g_out = self.generator(inputs, masked_lm_labels=labels)
+        g_out = self.generator(inputs,
+                               masked_lm_labels=labels,
+                               attention_mask=attention_mask)
 
         preds = torch.argmax(g_out[1], dim=-1)
 
@@ -82,12 +86,14 @@ class DiscLMTrainingModule(pl.LightningModule):
         d_labels[correct_preds] = False
         d_labels = mask.long()
 
-        d_out = self.discriminator(d_inputs, labels=d_labels)
+        d_out = self.discriminator(d_inputs,
+                                   labels=d_labels,
+                                   attention_mask=attention_mask)
         return g_out, d_out, d_labels
 
     def training_step(self, batch, batch_idx):
-        inputs, labels = batch
-        g_out, d_out, d_labels = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        g_out, d_out, d_labels = self.forward(inputs, labels, attention_mask)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
@@ -108,8 +114,8 @@ class DiscLMTrainingModule(pl.LightningModule):
         return {'loss': total_loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels, = batch
-        g_out, d_out, d_labels = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        g_out, d_out, d_labels = self.forward(inputs, labels, attention_mask)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
@@ -221,12 +227,12 @@ class DiscLMTrainingModule(pl.LightningModule):
         else:
             dist_sampler = None
 
-        collater = Collater(mlm=self.config.mlm,
+        collater = Collater(self.tokenizer,
+                            mlm=self.config.mlm,
                             mlm_prob=self.config.mlm_prob,
                             pad_token_id=self.pad_token_id,
                             mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size,
-                            max_seq_len=self.config.max_seq_len)
+                            vocab_size=self.vocab_size)
 
         return DataLoader(dataset,
                           batch_size=self.config.batch_size,

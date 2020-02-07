@@ -57,25 +57,32 @@ class LMTrainingModule(pl.LightningModule):
 
         self.tokenizer.enable_padding(pad_id=self.pad_token_id,
                                       max_length=config.max_seq_len)
+        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
+                                         strategy='only_first')
+
         self.model = model
 
-    def forward(self, inputs, labels):
+    def forward(self, inputs, labels, attention_mask):
         if self.config.mlm:
-            outputs = self.model(inputs, masked_lm_labels=labels)
+            outputs = self.model(inputs,
+                                 masked_lm_labels=labels,
+                                 attention_mask=attention_mask)
         else:
-            outputs = self.model(inputs, labels=labels)
+            outputs = self.model(inputs,
+                                 labels=labels,
+                                 attention_mask=attention_mask)
         return outputs
 
     def training_step(self, batch, batch_idx):
-        inputs, labels = batch
-        outputs = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
         tensorboard_logs = {'train_loss': loss}
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels = batch
-        outputs = self.forward(inputs, labels)
+        inputs, labels, attention_mask = batch
+        outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
 
         return {'val_loss': loss}
@@ -151,12 +158,12 @@ class LMTrainingModule(pl.LightningModule):
         else:
             dist_sampler = None
 
-        collater = Collater(mlm=self.config.mlm,
+        collater = Collater(self.tokenizer,
+                            mlm=self.config.mlm,
                             mlm_prob=self.config.mlm_prob,
                             pad_token_id=self.pad_token_id,
                             mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size,
-                            max_seq_len=self.config.max_seq_len)
+                            vocab_size=self.vocab_size)
 
         return DataLoader(dataset,
                           batch_size=self.config.batch_size,
