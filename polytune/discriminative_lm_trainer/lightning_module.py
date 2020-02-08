@@ -30,7 +30,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  num_workers=0,
                  shuffle=True,
                  accumulate_grad_batches=1,
-                 checkpoint_fn=None):
+                 checkpoint_fn=''):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
                          mlm=mlm,
@@ -54,6 +54,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.config = config
         self.hparams = config
+
+        print('set hparams:', self.hparams)
 
         self.tokenizer = tokenizer
 
@@ -208,7 +210,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         t_total = len(self.train_dataloader()) // self.config.batch_size
         t_total = t_total // self.config.accumulate_grad_batches
 
-        optimizer = Lamb(lr=self.config.learning_rate, eps=self.config.adam_epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
 
         # optimizer = AdamW(optimizer_grouped_parameters,
         #                   lr=self.config.learning_rate,

@@ -14,3 +14,7 @@ python --input enwiki-latest-pages-articles.xml.bz2
 ```
 
 Download the [Gutenberg Dataset](https://web.eecs.umich.edu/~lahiri/gutenberg_dataset.html).
+
+```sh
+unzip Gutenberg.zip
+mv gutenberg/txt/* data

@@ -1,8 +1,8 @@
 import torch
-from toch import nn
+from torch import nn
 
 
-def tie_weights(self, output_embeddings, input_embeddings):
+def tie_weights(output_embeddings, input_embeddings):
     """ Tie module weights
     """
     output_embeddings.weight = nn.Parameter(input_embeddings.weight.clone())
