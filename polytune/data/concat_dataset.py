@@ -67,7 +67,6 @@ def create_concat_dataset(tokenizer, paths):
 class LineByLineDataset(Dataset):
     def __init__(self, tokenizer, path):
         self.path = path
-        print(f'opening {path}')
         with open(path) as f:
             self.len = len(f.readlines())
         self.lines = None

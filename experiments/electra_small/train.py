@@ -8,8 +8,9 @@ tokenizer = BertWordPieceTokenizer('data/mercari-wordpiece-vocab.txt')
 
 generator_config = AlbertConfig(vocab_size=tokenizer._tokenizer.get_vocab_size(),
                                 hidden_size=256,
-                                num_hidden_layers=2,
-                                num_attention_heads=2,
+                                embedding_size=256,
+                                num_hidden_layers=3,
+                                num_attention_heads=1,
                                 intermediate_size=256,
                                 max_position_embedding=128)
 discriminator_config = BertConfig(vocab_size=tokenizer._tokenizer.get_vocab_size(),
@@ -28,5 +29,7 @@ tie_weights(generator.albert.embeddings.token_type_embeddings, discriminator.ber
 
 
 trainer = DiscLMTrainer(generator, discriminator, tokenizer, 'experiments/electra_small/data',
-                        save_path='mercari-electra', batch_size=64 * 4, accumulate_grad_batches=1, num_workers=4)
+                        save_path='electra-small', batch_size=64 * 2, accumulate_grad_batches=1, 
+                        weight_decay=0.01,
+                        num_workers=2, warmup_steps=10000, learning_rate=5e-4, adam_epsilon=1e-6)
 trainer.fit()
