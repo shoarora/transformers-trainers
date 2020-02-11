@@ -22,7 +22,8 @@ class Collater():
 
     def __call__(self, examples):
         batch_outputs = self.tokenizer.batch_encode_plus(
-            examples, add_special_tokens=True, return_tensors='pt', return_attention_masks=True)
+            examples, add_special_tokens=True, return_tensors='pt', return_attention_masks=True,
+            return_special_tokens_mask=True)
         inputs = batch_outputs['input_ids']
         attention_masks = batch_outputs['attention_mask']
         special_tokens_masks = batch_outputs['special_tokens_mask']

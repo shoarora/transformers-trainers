@@ -3,7 +3,7 @@ from polytune.utils import tie_weights
 from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
                           BertForTokenClassification, BertTokenizerFast)
 
-tokenizer = BertTokenizerFast('experiments/electra_small/bert-base-uncased-vocab.txt')
+tokenizer = BertTokenizerFast('experiments/electra_small/bert-base-uncased-vocab.txt', max_length=128, pad_to_max_length=True, add_special_tokens=True)
 
 generator_config = AlbertConfig(vocab_size=tokenizer._tokenizer.get_vocab_size(),
                                 hidden_size=256,
