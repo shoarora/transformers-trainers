@@ -22,3 +22,9 @@ Download the [Gutenberg Dataset](https://web.eecs.umich.edu/~lahiri/gutenberg_da
 unzip Gutenberg.zip
 mv Gutenberg/txt/* data
 ```
+
+Preprocess the data
+
+```sh
+python preprocess_data_files.py data data_processed
+```
