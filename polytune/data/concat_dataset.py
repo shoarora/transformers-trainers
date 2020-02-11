@@ -1,6 +1,3 @@
-import numpy as np
-
-import torch
 from polytune.utils import mask_tokens
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import ConcatDataset, Dataset
@@ -24,21 +21,11 @@ class Collater():
         self.cls_token_id = None
 
     def __call__(self, examples):
-        # TODO how to make this backward compatible with the old tokenizers?
-        encodings = self.tokenizer.encode_batch(examples)
-        ids = []
-        attention_masks = []
-        special_tokens_masks = []
-        for e in encodings:
-            ids.append(e.ids)
-            attention_masks.append(e.attention_mask)
-            special_tokens_masks.append(e.special_tokens_mask)
-
-        inputs = torch.tensor(ids, dtype=torch.long)
-        attention_masks = torch.tensor(attention_masks,
-                                       dtype=torch.long)
-        special_tokens_masks = torch.tensor(special_tokens_masks,
-                                            dtype=torch.bool)
+        batch_outputs = self.tokenizer.batch_encode_plus(
+            examples, add_special_tokens=True, return_tensors='pt', return_attention_masks=True)
+        inputs = batch_outputs['input_ids']
+        attention_masks = batch_outputs['attention_mask']
+        special_tokens_masks = batch_outputs['special_tokens_mask']
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,

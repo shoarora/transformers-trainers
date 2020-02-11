@@ -22,8 +22,3 @@ Download the [Gutenberg Dataset](https://web.eecs.umich.edu/~lahiri/gutenberg_da
 unzip Gutenberg.zip
 mv Gutenberg/txt/* data
 ```
-
-Download the vocab file:
-```sh
-wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt
-```

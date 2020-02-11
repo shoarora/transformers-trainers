@@ -25,7 +25,6 @@ setup(
     packages=find_packages(exclude=('tests', )),
     install_requires=[
         'transformers==2.4.0',
-        'tokenizers==0.2.1',
         'fire==0.2.1',
         'pytorch-lightning==0.6.0',
         'pytorch-lamb @ git+ssh://git@github.com/cybertronai/pytorch-lamb.git'

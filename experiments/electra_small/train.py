@@ -1,10 +1,9 @@
 from polytune import DiscLMTrainer
 from polytune.utils import tie_weights
-from tokenizers import BertWordPieceTokenizer
 from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
-                          BertForTokenClassification)
+                          BertForTokenClassification, BertTokenizerFast)
 
-tokenizer = BertWordPieceTokenizer('experiments/electra_small/bert-base-uncased-vocab.txt')
+tokenizer = BertTokenizerFast('bert-base-uncased')
 
 generator_config = AlbertConfig(vocab_size=tokenizer._tokenizer.get_vocab_size(),
                                 hidden_size=256,
@@ -29,7 +28,7 @@ tie_weights(generator.albert.embeddings.token_type_embeddings, discriminator.ber
 
 
 trainer = DiscLMTrainer(generator, discriminator, tokenizer, 'experiments/electra_small/data',
-                        save_path='electra-small', batch_size=64 * 2, accumulate_grad_batches=1, 
+                        save_path='electra-small', batch_size=64 * 2, accumulate_grad_batches=1,
                         weight_decay=0.01,
                         num_workers=2, warmup_steps=10000, learning_rate=5e-4, adam_epsilon=1e-6)
 trainer.fit()

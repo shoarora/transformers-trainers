@@ -17,7 +17,6 @@ class LMTrainingModuleConfig(Namespace):
             data_path,
             mlm=True,
             mlm_prob=0.15,
-            max_seq_len=128,
             save_path=None,
             weight_decay=0.0,
             learning_rate=5e-5,
@@ -30,7 +29,6 @@ class LMTrainingModuleConfig(Namespace):
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
-                         max_seq_len=max_seq_len,
                          mlm_prob=mlm_prob,
                          save_path=save_path,
                          weight_decay=weight_decay,
@@ -51,14 +49,9 @@ class LMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.pad_token_id = self.tokenizer._tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self.tokenizer._tokenizer.token_to_id("[MASK]")
         self.vocab_size = self.model.config.vocab_size
-
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.model = model
 
@@ -92,21 +85,23 @@ class LMTrainingModule(pl.LightningModule):
 
         perplexity = torch.exp(avg_loss)
 
-        output_dir = os.path.join(self.config.save_path,
-                                  f"{self.current_epoch}-{self.global_step}")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        model_to_save = (self.model.module
-                         if hasattr(self.model, "module") else self.model)
-        model_to_save.save_pretrained(output_dir)
-
-        if hasattr(self.tokenizer, 'save_pretrained'):
-            self.tokenizer.save_pretrained(output_dir)
-        else:
-            self.tokenizer.save(output_dir, 'tokenizer')
+        self.checkpoint_fn()
 
         tensorboard_logs = {'val_loss': avg_loss, 'perplexity': perplexity}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+
+    def checkpoint_fn(self):
+        self._save_model(self.model, 'model')
+        self._save_model(self.tokenizer, 'tokenizer')
+
+    def _save_model(self, model, name):
+        output_dir = os.path.join(self.config.save_path, name,
+                                  f"{self.current_epoch}-{self.global_step}")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        model_to_save = (model.module if hasattr(model, "module") else model)
+        model_to_save.save_pretrained(output_dir)
 
     def configure_optimizers(self):
         no_decay = ["bias", "LayerNorm.weight"]
