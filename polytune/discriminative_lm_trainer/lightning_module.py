@@ -24,11 +24,12 @@ class DiscLMTrainingModuleConfig(Namespace):
                  qq_len=128,
                  weight_decay=0.0,
                  learning_rate=5e-5,
-                 adam_epsilon=1e-8,
+                 epsion=1e-8,
                  warmup_steps=0,
                  batch_size=32,
                  num_workers=0,
                  shuffle=True,
+                 max_nb_epochs=10,
                  accumulate_grad_batches=1,
                  checkpoint_fn=''):
         super().__init__(data_path=data_path,
@@ -38,11 +39,12 @@ class DiscLMTrainingModuleConfig(Namespace):
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
-                         adam_epsilon=adam_epsilon,
+                         epsion=epsion,
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
+                         max_nb_epochs=max_nb_epochs,
                          accumulate_grad_batches=accumulate_grad_batches,
                          checkpoint_fn=checkpoint_fn)
 
@@ -194,14 +196,11 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) // self.config.batch_size
+        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
         t_total = t_total // self.config.accumulate_grad_batches
 
-        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsion)
 
-        # optimizer = AdamW(optimizer_grouped_parameters,
-        #                   lr=self.config.learning_rate,
-        #                   eps=self.config.adam_epsilon)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
