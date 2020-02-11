@@ -13,5 +13,4 @@ dependencies:
   - requests=2.19.1
   - pip
   - pip:
-      - pytorch-lightning==0.5.3
-      - git+ssh://git@github.com/cybertronai/pytorch-lamb.git
+      - -e .

@@ -4,7 +4,7 @@ from tokenizers import BertWordPieceTokenizer
 from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
                           BertForTokenClassification)
 
-tokenizer = BertWordPieceTokenizer('data/mercari-wordpiece-vocab.txt')
+tokenizer = BertWordPieceTokenizer('experiments/electra_small/bert-base-uncased-vocab.txt')
 
 generator_config = AlbertConfig(vocab_size=tokenizer._tokenizer.get_vocab_size(),
                                 hidden_size=256,
