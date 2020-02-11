@@ -36,6 +36,8 @@ class DiscLMTrainer:
         self.discriminator = discriminator
         self.tokenizer = tokenizer
 
+        assert generator.config.vocab_size == discriminator.config.vocab_size
+
         logging.debug('checking data_path contents')
         self.check_data_path(data_path)
 

@@ -7,6 +7,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from polytune.data import Collater, create_concat_dataset
+from pytorch_lamb import Lamb
 from torch.utils.data import DataLoader
 from transformers import AdamW, get_linear_schedule_with_warmup
 
@@ -28,7 +29,8 @@ class DiscLMTrainingModuleConfig(Namespace):
                  batch_size=32,
                  num_workers=0,
                  shuffle=True,
-                 accumulate_grad_batches=1):
+                 accumulate_grad_batches=1,
+                 checkpoint_fn=''):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
                          mlm=mlm,
@@ -42,7 +44,8 @@ class DiscLMTrainingModuleConfig(Namespace):
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
-                         accumulate_grad_batches=accumulate_grad_batches)
+                         accumulate_grad_batches=accumulate_grad_batches,
+                         checkpoint_fn=checkpoint_fn)
 
 
 class DiscLMTrainingModule(pl.LightningModule):
@@ -51,6 +54,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.config = config
         self.hparams = config
+
+        print('set hparams:', self.hparams)
 
         self.tokenizer = tokenizer
 
@@ -105,6 +110,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
 
+        self._log_and_step_lr()
+
         tensorboard_logs = {
             'train/loss': total_loss,
             'train/d_loss': d_loss,
@@ -152,6 +159,8 @@ class DiscLMTrainingModule(pl.LightningModule):
             self.tokenizer.save_pretrained(output_dir)
         else:
             self.tokenizer.save(output_dir, 'tokenizer')
+        if self.config.checkpoint_fn:
+            self.config.checkpoint_fn(self)
 
         tensorboard_logs = {
             'val/loss': avg_loss,
@@ -201,15 +210,27 @@ class DiscLMTrainingModule(pl.LightningModule):
         t_total = len(self.train_dataloader()) // self.config.batch_size
         t_total = t_total // self.config.accumulate_grad_batches
 
-        optimizer = AdamW(optimizer_grouped_parameters,
-                          lr=self.config.learning_rate,
-                          eps=self.config.adam_epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
+
+        # optimizer = AdamW(optimizer_grouped_parameters,
+        #                   lr=self.config.learning_rate,
+        #                   eps=self.config.adam_epsilon)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
             num_training_steps=t_total)
 
         return [optimizer], [scheduler]
+
+    def _log_and_step_lr(self):
+        """Logs learning rate to tensorboard.
+        """
+        # get LR schedulers from the pytorch-lightning trainer object.
+        scheduler = self.trainer.lr_schedulers[0]
+        scheduler.step()
+        for i, lr in enumerate(scheduler.get_lr()):
+            # add the scalar to the test_tube Experiment object.
+            self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
 
     @property
     def is_distributed(self):
