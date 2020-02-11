@@ -23,7 +23,16 @@ unzip Gutenberg.zip
 mv Gutenberg/txt/* data
 ```
 
-Download the vocab file:
+Preprocess the data
+
+```sh
+python preprocess_data_files.py data data_processed
+```
+
+
+Download the tokenizer vocab:
+
 ```sh
 wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt
+>>>>>>> Download vocab file
 ```

@@ -17,29 +17,29 @@ class LMTrainingModuleConfig(Namespace):
             data_path,
             mlm=True,
             mlm_prob=0.15,
-            max_seq_len=128,
             save_path=None,
             weight_decay=0.0,
             learning_rate=5e-5,
-            adam_epsilon=1e-8,
+            epsion=1e-8,
             warmup_steps=0,
             batch_size=32,
             num_workers=0,
             shuffle=True,
+            max_nb_epochs=10,
             accumulate_grad_batches=1,
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
-                         max_seq_len=max_seq_len,
                          mlm_prob=mlm_prob,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
-                         adam_epsilon=adam_epsilon,
+                         epsion=epsion,
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
+                         max_nb_epochs=max_nb_epochs,
                          accumulate_grad_batches=accumulate_grad_batches)
 
 
@@ -51,14 +51,9 @@ class LMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.pad_token_id = self.tokenizer._tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self.tokenizer._tokenizer.token_to_id("[MASK]")
         self.vocab_size = self.model.config.vocab_size
-
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.model = model
 
@@ -92,21 +87,23 @@ class LMTrainingModule(pl.LightningModule):
 
         perplexity = torch.exp(avg_loss)
 
-        output_dir = os.path.join(self.config.save_path,
-                                  f"{self.current_epoch}-{self.global_step}")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        model_to_save = (self.model.module
-                         if hasattr(self.model, "module") else self.model)
-        model_to_save.save_pretrained(output_dir)
-
-        if hasattr(self.tokenizer, 'save_pretrained'):
-            self.tokenizer.save_pretrained(output_dir)
-        else:
-            self.tokenizer.save(output_dir, 'tokenizer')
+        self.checkpoint_fn()
 
         tensorboard_logs = {'val_loss': avg_loss, 'perplexity': perplexity}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+
+    def checkpoint_fn(self):
+        self._save_model(self.model, 'model')
+        self._save_model(self.tokenizer, 'tokenizer')
+
+    def _save_model(self, model, name):
+        output_dir = os.path.join(self.config.save_path, name,
+                                  f"{self.current_epoch}-{self.global_step}")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        model_to_save = (model.module if hasattr(model, "module") else model)
+        model_to_save.save_pretrained(output_dir)
 
     def configure_optimizers(self):
         no_decay = ["bias", "LayerNorm.weight"]
@@ -129,12 +126,12 @@ class LMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) // self.config.batch_size
+        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
         t_total = t_total // self.config.accumulate_grad_batches
 
         optimizer = AdamW(optimizer_grouped_parameters,
                           lr=self.config.learning_rate,
-                          eps=self.config.adam_epsilon)
+                          eps=self.config.epsion)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,

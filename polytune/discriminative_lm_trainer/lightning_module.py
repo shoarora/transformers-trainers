@@ -9,7 +9,7 @@ import torch
 from polytune.data import Collater, create_concat_dataset
 from pytorch_lamb import Lamb
 from torch.utils.data import DataLoader
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
 
 logger = logging.getLogger(__name__)
 
@@ -21,29 +21,30 @@ class DiscLMTrainingModuleConfig(Namespace):
                  mlm=True,
                  mlm_prob=0.15,
                  save_path=None,
-                 max_seq_len=128,
+                 qq_len=128,
                  weight_decay=0.0,
                  learning_rate=5e-5,
-                 adam_epsilon=1e-8,
+                 epsion=1e-8,
                  warmup_steps=0,
                  batch_size=32,
                  num_workers=0,
                  shuffle=True,
+                 max_nb_epochs=10,
                  accumulate_grad_batches=1,
                  checkpoint_fn=''):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
                          mlm=mlm,
                          mlm_prob=mlm_prob,
-                         max_seq_len=max_seq_len,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
-                         adam_epsilon=adam_epsilon,
+                         epsion=epsion,
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
+                         max_nb_epochs=max_nb_epochs,
                          accumulate_grad_batches=accumulate_grad_batches,
                          checkpoint_fn=checkpoint_fn)
 
@@ -59,14 +60,9 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.pad_token_id = self.tokenizer._tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self.tokenizer._tokenizer.token_to_id("[MASK]")
         self.vocab_size = generator.config.vocab_size
-
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.generator = generator
         self.discriminator = discriminator
@@ -148,19 +144,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         perplexity = torch.exp(torch.tensor(avg_g_loss))
 
-        self._save_model(self.generator, 'generator')
-        self._save_model(self.discriminator, 'discriminator')
-
-        output_dir = os.path.join(self.config.save_path,
-                                  f"{self.current_epoch}-{self.global_step}")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        if hasattr(self.tokenizer, 'save_pretrained'):
-            self.tokenizer.save_pretrained(output_dir)
-        else:
-            self.tokenizer.save(output_dir, 'tokenizer')
-        if self.config.checkpoint_fn:
-            self.config.checkpoint_fn(self)
+        self.checkpoint_fn()
 
         tensorboard_logs = {
             'val/loss': avg_loss,
@@ -170,6 +154,11 @@ class DiscLMTrainingModule(pl.LightningModule):
             'val/d_acc': avg_d_acc
         }
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+
+    def checkpoint_fn(self):
+        self._save_model(self.generator, 'generator')
+        self._save_model(self.discriminator, 'discriminator')
+        self._save_model(self.tokenizer, 'tokenizer')
 
     def _save_model(self, model, name):
         output_dir = os.path.join(self.config.save_path, name,
@@ -207,14 +196,11 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) // self.config.batch_size
+        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
         t_total = t_total // self.config.accumulate_grad_batches
 
-        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsion)
 
-        # optimizer = AdamW(optimizer_grouped_parameters,
-        #                   lr=self.config.learning_rate,
-        #                   eps=self.config.adam_epsilon)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
