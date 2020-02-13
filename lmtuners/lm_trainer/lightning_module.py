@@ -44,10 +44,11 @@ class LMTrainingModuleConfig(Namespace):
 
 
 class LMTrainingModule(pl.LightningModule):
-    def __init__(self, model, tokenizer, config):
+    def __init__(self, model, tokenizer, config, checkpoint_fn=None):
         super().__init__()
         self.config = config
         self.hparams = config
+        self.checkpoint_fn = checkpoint_fn
 
         self.tokenizer = tokenizer
 
@@ -106,6 +107,8 @@ class LMTrainingModule(pl.LightningModule):
             self.tokenizer.save_pretrained(output_dir)
         else:
             self.tokenizer.save(output_dir, 'tokenizer')
+        if self.checkpoint_fn:
+            self.checkpoint_fn(self)
 
         tensorboard_logs = {'val/loss': avg_loss, 'val/perplexity': perplexity}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}

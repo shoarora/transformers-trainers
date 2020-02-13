@@ -30,7 +30,8 @@ class LMTrainer:
                  fast_dev_run=False,
                  use_amp=False,
                  amp_level='O2',
-                 val_check_interval=0.25):
+                 val_check_interval=0.25,
+                 checkpoint_fn=None):
         self.model = model
         self.tokenizer = tokenizer
 
@@ -53,7 +54,7 @@ class LMTrainer:
             accumulate_grad_batches=accumulate_grad_batches)
 
         logging.debug('creating training module')
-        self.training_module = LMTrainingModule(model, tokenizer, config)
+        self.training_module = LMTrainingModule(model, tokenizer, config, checkpoint_fn=checkpoint_fn)
 
         logging.debug('creating pytorch-lightning trainer')
         self.trainer = pl.Trainer(

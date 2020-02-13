@@ -31,7 +31,9 @@ class DiscLMTrainer:
                  fast_dev_run=False,
                  use_amp=False,
                  amp_level='O2',
-                 val_check_interval=0.25):
+                 val_check_interval=0.25,
+                 checkpoint_fn=None,
+                 ddp_fn=None):
         self.generator = generator
         self.discriminator = discriminator
         self.tokenizer = tokenizer
@@ -57,7 +59,7 @@ class DiscLMTrainer:
 
         logging.debug('creating training module')
         self.training_module = DiscLMTrainingModule(generator, discriminator,
-                                                    tokenizer, config)
+                                                    tokenizer, config, checkpoint_fn=checkpoint_fn, ddp_fn=ddp_fn)
         logging.debug('creating pytorch-lightning trainer')
         self.trainer = pl.Trainer(
             accumulate_grad_batches=accumulate_grad_batches,
