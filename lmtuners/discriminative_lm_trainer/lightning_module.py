@@ -22,7 +22,7 @@ class DiscLMTrainingModuleConfig(Namespace):
     """Config class for DiscLMTrainingModule."""
     def __init__(self,
                  data_path,
-                 max_nb_epcohs=10,
+                 max_nb_epochs=10,
                  d_loss_weight=50,
                  mlm=True,
                  mlm_prob=0.15,
@@ -38,7 +38,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  accumulate_grad_batches=1):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
-                         max_nb_epcohs=max_nb_epcohs,
+                         max_nb_epochs=max_nb_epochs,
                          mlm=mlm,
                          mlm_prob=mlm_prob,
                          max_seq_len=max_seq_len,

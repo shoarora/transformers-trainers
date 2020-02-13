@@ -17,7 +17,7 @@ class LMTrainingModuleConfig(Namespace):
     def __init__(
             self,
             data_path,
-            max_nb_epcohs=10,
+            max_nb_epochs=10,
             mlm=True,
             mlm_prob=0.15,
             max_seq_len=128,
@@ -33,7 +33,7 @@ class LMTrainingModuleConfig(Namespace):
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
-                         max_nb_epcohs=max_nb_epcohs,
+                         max_nb_epochs=max_nb_epochs,
                          max_seq_len=max_seq_len,
                          mlm_prob=mlm_prob,
                          save_path=save_path,
