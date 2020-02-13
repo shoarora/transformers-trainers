@@ -28,6 +28,7 @@ class LMTrainingModuleConfig(Namespace):
             batch_size=32,
             num_workers=0,
             shuffle=True,
+            use_linecache=False,
             accumulate_grad_batches=1,
     ):
         super().__init__(data_path=data_path,
@@ -42,6 +43,7 @@ class LMTrainingModuleConfig(Namespace):
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
+                         use_linecache=use_linecache,
                          accumulate_grad_batches=accumulate_grad_batches)
 
 
@@ -167,7 +169,7 @@ class LMTrainingModule(pl.LightningModule):
 
     def get_dataloader(self, path):
         paths = [os.path.join(path, name) for name in os.listdir(path)]
-        dataset = create_concat_dataset(self.tokenizer, paths)
+        dataset = create_concat_dataset(self.tokenizer, paths, use_linecache=self.config.use_linecache)
 
         if hasattr(self, 'is_distributed') and self.is_distributed:
             dist_sampler = torch.utils.data.distributed.DistributedSampler(

@@ -1,4 +1,4 @@
-import numpy as np
+import linecache
 
 import torch
 from lmtuners.utils import mask_tokens
@@ -24,7 +24,6 @@ class Collater():
         self.cls_token_id = None
 
     def __call__(self, examples):
-        # TODO how to make this backward compatible with the old tokenizers?
         encodings = self.tokenizer.encode_batch(examples)
         ids = []
         attention_masks = []
@@ -58,23 +57,33 @@ class Collater():
         return inputs
 
 
-def create_concat_dataset(tokenizer, paths):
-    datasets = [LineByLineDataset(tokenizer, p) for p in paths]
+def create_concat_dataset(tokenizer, paths, use_linecache=False):
+    datasets = [LineByLineDataset(tokenizer, p, use_linecache=use_linecache) for p in paths]
     dataset = ConcatDataset(datasets)
     return dataset
 
 
 class LineByLineDataset(Dataset):
-    def __init__(self, tokenizer, path):
+    def __init__(self, tokenizer, path, use_linecache=False):
         self.path = path
         with open(path) as f:
-            self.len = len(f.readlines())
+            self.len = len(f.readlines()) - 1
         self.lines = None
+        self.use_linecache = use_linecache
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, i):
+        if self.use_linecache:
+            return self.get_line_with_cache(i)
+        else:
+            return self.get_line_without_cache(i)
+
+    def get_line_with_cache(self, i):
+        return linecache.getline(self.path, i)
+
+    def get_line_without_cache(self, i):
         if not self.lines:
             with open(self.path) as f:
                 self.lines = f.readlines()

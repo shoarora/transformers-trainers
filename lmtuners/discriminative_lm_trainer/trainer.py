@@ -30,6 +30,7 @@ class DiscLMTrainer:
         batch_size (int): Number of data points per batch.
         num_workers (int): NUmber of data loader workers.  (note: each process takes a lot memory)
         shuffle (bool): Whether to shuffle data points.
+        use_linecache (bool): Whether to use linecache in dataloaders.
         ===============================================
         Pytorch-Lightning Trainer Args.  See their docs
         ===============================================
@@ -71,6 +72,7 @@ class DiscLMTrainer:
                  batch_size=32,
                  num_workers=0,
                  shuffle=True,
+                 use_linecache=False,
                  accumulate_grad_batches=1,
                  gpus=1,
                  distributed_backend=None,
@@ -102,6 +104,7 @@ class DiscLMTrainer:
                                             batch_size=batch_size,
                                             num_workers=num_workers,
                                             shuffle=shuffle,
+                                            use_linecache=use_linecache,
                                             accumulate_grad_batches=accumulate_grad_batches)
 
         logging.debug('creating training module')
