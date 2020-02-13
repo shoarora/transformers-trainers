@@ -1,3 +1,4 @@
+"""Pytorch lightning module for language modelling."""
 import logging
 import os
 from argparse import Namespace
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class LMTrainingModuleConfig(Namespace):
+    """Config class LMTrainingModule."""
     def __init__(
             self,
             data_path,
@@ -21,7 +23,7 @@ class LMTrainingModuleConfig(Namespace):
             save_path=None,
             weight_decay=0.0,
             learning_rate=5e-5,
-            adam_epsilon=1e-8,
+            epsilon=1e-8,
             warmup_steps=0,
             batch_size=32,
             num_workers=0,
@@ -35,7 +37,7 @@ class LMTrainingModuleConfig(Namespace):
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
-                         adam_epsilon=adam_epsilon,
+                         epsilon=epsilon,
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
@@ -139,7 +141,7 @@ class LMTrainingModule(pl.LightningModule):
 
         optimizer = AdamW(optimizer_grouped_parameters,
                           lr=self.config.learning_rate,
-                          eps=self.config.adam_epsilon)
+                          eps=self.config.epsilon)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
