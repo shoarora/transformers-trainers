@@ -121,8 +121,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
-        acc = torch.tensor(acc)
+        acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -142,8 +141,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
-        acc = torch.tensor(acc)
+        acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -160,7 +158,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         avg_g_loss = torch.stack([x['val_g_loss'] for x in outputs]).mean()
         avg_d_acc = torch.stack([x['val_d_acc'] for x in outputs]).mean()
 
-        perplexity = torch.exp(torch.tensor(avg_g_loss))
+        perplexity = torch.exp(avg_g_loss)
 
         self._save_model(self.generator.base_model, 'generator')
         self._save_model(self.discriminator.base_model, 'discriminator')
