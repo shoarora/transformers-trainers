@@ -6,7 +6,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 import torch
-from polytune.data import Collater, create_concat_dataset
+from lmtuners.data import Collater, create_concat_dataset
 from pytorch_lamb import Lamb
 from torch.utils.data import DataLoader
 from transformers import AdamW, get_linear_schedule_with_warmup

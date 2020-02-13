@@ -1,4 +1,4 @@
-"""polytune - Tools for training pytorch language models"""
+"""lmtuners - Tools for training pytorch language models"""
 from .discriminative_lm_trainer import DiscLMTrainer  # noqa: F401
 from .lm_trainer import LMTrainer  # noqa: F401
 

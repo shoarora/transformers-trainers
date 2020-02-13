@@ -1,7 +1,7 @@
 import numpy as np
 
 import torch
-from polytune.utils import mask_tokens
+from lmtuners.utils import mask_tokens
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import ConcatDataset, Dataset
 
