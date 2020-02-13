@@ -3,15 +3,14 @@ import os
 
 import pytorch_lightning as pl
 
-from .lightning_module import DiscLMTrainingModule, DiscLMTrainingModuleConfig
+from .lightning_module import LMTrainingModule, LMTrainingModuleConfig
 
 logger = logging.getLogger(__name__)
 
 
-class DiscLMTrainer:
+class LMTrainer:
     def __init__(self,
-                 generator,
-                 discriminator,
+                 model,
                  tokenizer,
                  data_path,
                  mlm=True,
@@ -31,33 +30,32 @@ class DiscLMTrainer:
                  fast_dev_run=False,
                  use_amp=False,
                  amp_level='O2',
-                 val_check_interval=0.25):
-        self.generator = generator
-        self.discriminator = discriminator
+                 val_check_interval=0.25,
+                 checkpoint_fn=None):
+        self.model = model
         self.tokenizer = tokenizer
-
-        assert generator.config.vocab_size == discriminator.config.vocab_size
 
         logging.debug('checking data_path contents')
         self.check_data_path(data_path)
 
         logging.debug('creating module config')
-        config = DiscLMTrainingModuleConfig(data_path=data_path,
-                                            mlm=mlm,
-                                            mlm_prob=mlm_prob,
-                                            save_path=save_path,
-                                            weight_decay=weight_decay,
-                                            learning_rate=learning_rate,
-                                            adam_epsilon=adam_epsilon,
-                                            warmup_steps=warmup_steps,
-                                            batch_size=batch_size,
-                                            num_workers=num_workers,
-                                            shuffle=shuffle,
-                                            accumulate_grad_batches=accumulate_grad_batches)
+        config = LMTrainingModuleConfig(
+            data_path=data_path,
+            mlm=mlm,
+            mlm_prob=mlm_prob,
+            save_path=save_path,
+            weight_decay=weight_decay,
+            learning_rate=learning_rate,
+            adam_epsilon=adam_epsilon,
+            warmup_steps=warmup_steps,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            accumulate_grad_batches=accumulate_grad_batches)
 
         logging.debug('creating training module')
-        self.training_module = DiscLMTrainingModule(generator, discriminator,
-                                                    tokenizer, config)
+        self.training_module = LMTrainingModule(model, tokenizer, config, checkpoint_fn=checkpoint_fn)
+
         logging.debug('creating pytorch-lightning trainer')
         self.trainer = pl.Trainer(
             accumulate_grad_batches=accumulate_grad_batches,
@@ -70,8 +68,7 @@ class DiscLMTrainer:
             val_check_interval=val_check_interval)
 
     def fit(self):
-        logging.info(f"generator: {self.generator}")
-        logging.info(f"discriminator: {self.discriminator}")
+        logging.info(f"model: {self.model}")
         return self.trainer.fit(self.training_module)
 
     def check_data_path(self, data_path):

@@ -4,7 +4,7 @@ from argparse import Namespace
 
 import pytorch_lightning as pl
 import torch
-from polytune.data import Collater, create_concat_dataset
+from lmtuners.data import Collater, create_concat_dataset
 from torch.utils.data import DataLoader
 from transformers import AdamW, get_linear_schedule_with_warmup
 
@@ -44,10 +44,11 @@ class LMTrainingModuleConfig(Namespace):
 
 
 class LMTrainingModule(pl.LightningModule):
-    def __init__(self, model, tokenizer, config):
+    def __init__(self, model, tokenizer, config, checkpoint_fn=None):
         super().__init__()
         self.config = config
         self.hparams = config
+        self.checkpoint_fn = checkpoint_fn
 
         self.tokenizer = tokenizer
 
@@ -77,7 +78,9 @@ class LMTrainingModule(pl.LightningModule):
         inputs, labels, attention_mask = batch
         outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
-        tensorboard_logs = {'train_loss': loss}
+        perplexity = torch.exp(loss)
+        self._log_and_step_lr()
+        tensorboard_logs = {'train/loss': loss, 'train/perplexity': perplexity}
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
@@ -104,8 +107,10 @@ class LMTrainingModule(pl.LightningModule):
             self.tokenizer.save_pretrained(output_dir)
         else:
             self.tokenizer.save(output_dir, 'tokenizer')
+        if self.checkpoint_fn:
+            self.checkpoint_fn(self)
 
-        tensorboard_logs = {'val_loss': avg_loss, 'perplexity': perplexity}
+        tensorboard_logs = {'val/loss': avg_loss, 'val/perplexity': perplexity}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
@@ -141,6 +146,16 @@ class LMTrainingModule(pl.LightningModule):
             num_training_steps=t_total)
 
         return [optimizer], [scheduler]
+
+    def _log_and_step_lr(self):
+        """Logs learning rate to tensorboard.
+        """
+        # get LR schedulers from the pytorch-lightning trainer object.
+        scheduler = self.trainer.lr_schedulers[0]
+        scheduler.step()
+        for i, lr in enumerate(scheduler.get_lr()):
+            # add the scalar to the test_tube Experiment object.
+            self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
 
     @property
     def is_distributed(self):

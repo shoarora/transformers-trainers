@@ -1,5 +1,5 @@
-from polytune import DiscLMTrainer
-from polytune.utils import tie_weights
+from lmtuners import DiscLMTrainer
+from lmtuners.utils import tie_weights
 from tokenizers import BertWordPieceTokenizer
 from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
                           BertForTokenClassification)

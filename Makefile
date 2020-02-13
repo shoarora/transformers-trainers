@@ -1,4 +1,4 @@
-PROJECT_NAME=polytune
+PROJECT_NAME=lmtuners
 
 # To run 'source' and 'conda' functions in Makefile
 # SHELL=/bin/bash

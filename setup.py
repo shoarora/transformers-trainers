@@ -14,9 +14,9 @@ def read(filename):
 
 
 setup(
-    name="polytune",
+    name="lmtuners",
     version="0.1.0",
-    url="htts://github.com/shoarora/polytune",
+    url="htts://github.com/shoarora/lmtuners",
     license='MIT',
     author="Sho Arora",
     author_email="shoarora@cs.stanford.edu",

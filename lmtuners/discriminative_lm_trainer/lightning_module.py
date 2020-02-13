@@ -6,10 +6,10 @@ import numpy as np
 
 import pytorch_lightning as pl
 import torch
-from polytune.data import Collater, create_concat_dataset
+from lmtuners.data import Collater, create_concat_dataset
 from pytorch_lamb import Lamb
 from torch.utils.data import DataLoader
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  batch_size=32,
                  num_workers=0,
                  shuffle=True,
-                 accumulate_grad_batches=1,
-                 checkpoint_fn=''):
+                 accumulate_grad_batches=1):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
                          mlm=mlm,
@@ -44,16 +43,19 @@ class DiscLMTrainingModuleConfig(Namespace):
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
-                         accumulate_grad_batches=accumulate_grad_batches,
-                         checkpoint_fn=checkpoint_fn)
+                         accumulate_grad_batches=accumulate_grad_batches)
 
 
 class DiscLMTrainingModule(pl.LightningModule):
-    def __init__(self, generator, discriminator, tokenizer, config):
+    def __init__(self, generator, discriminator, tokenizer, config, checkpoint_fn=None, ddp_fn=None):
         super().__init__()
 
         self.config = config
         self.hparams = config
+        self.checkpoint_fn = checkpoint_fn
+        self.ddp_fn = ddp_fn
+        if ddp_fn:
+            logger.warning('ddp_fn functionality is not implemented yet.')
 
         print('set hparams:', self.hparams)
 
@@ -159,8 +161,9 @@ class DiscLMTrainingModule(pl.LightningModule):
             self.tokenizer.save_pretrained(output_dir)
         else:
             self.tokenizer.save(output_dir, 'tokenizer')
-        if self.config.checkpoint_fn:
-            self.config.checkpoint_fn(self)
+
+        if self.checkpoint_fn:
+            self.checkpoint_fn(self)
 
         tensorboard_logs = {
             'val/loss': avg_loss,
@@ -212,9 +215,6 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
 
-        # optimizer = AdamW(optimizer_grouped_parameters,
-        #                   lr=self.config.learning_rate,
-        #                   eps=self.config.adam_epsilon)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
