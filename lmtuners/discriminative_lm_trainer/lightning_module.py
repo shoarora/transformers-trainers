@@ -1,3 +1,7 @@
+"""Pytorch lightning module for Discriminative LM task from ELECTRA.
+
+https://openreview.net/forum?id=r1xMH1BtvB
+"""
 import logging
 import os
 from argparse import Namespace
@@ -15,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class DiscLMTrainingModuleConfig(Namespace):
+    """Config class for DiscLMTrainingModule."""
     def __init__(self,
                  data_path,
                  d_loss_weight=50,
@@ -24,7 +29,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  max_seq_len=128,
                  weight_decay=0.0,
                  learning_rate=5e-5,
-                 adam_epsilon=1e-8,
+                 epsilon=1e-8,
                  warmup_steps=0,
                  batch_size=32,
                  num_workers=0,
@@ -38,7 +43,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
-                         adam_epsilon=adam_epsilon,
+                         epsilon=epsilon,
                          warmup_steps=warmup_steps,
                          batch_size=batch_size,
                          num_workers=num_workers,
@@ -61,10 +66,12 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
+        # get special tokens.
         self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
         self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
         self.vocab_size = generator.config.vocab_size
 
+        # configure max length and padding.
         self.tokenizer.enable_padding(pad_id=self.pad_token_id,
                                       max_length=config.max_seq_len)
         self.tokenizer.enable_truncation(max_length=config.max_seq_len,
@@ -74,11 +81,15 @@ class DiscLMTrainingModule(pl.LightningModule):
         self.discriminator = discriminator
 
     def forward(self, inputs, labels, attention_mask):
+        # copy the variables for use with discriminator.
         d_inputs, d_labels = inputs.clone(), labels.clone()
+
+        # run masked LM.
         g_out = self.generator(inputs,
                                masked_lm_labels=labels,
                                attention_mask=attention_mask)
 
+        # get predictions for masked LM.
         preds = torch.argmax(g_out[1], dim=-1)
 
         # labels have a -100 value to mask out loss from unchanged tokens.
@@ -93,6 +104,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         d_labels[correct_preds] = False
         d_labels = mask.long()
 
+        # run token classification, predict whether each token was corrupted.
         d_out = self.discriminator(d_inputs,
                                    labels=d_labels,
                                    attention_mask=attention_mask)
@@ -110,6 +122,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
         acc = torch.tensor(acc)
 
+        # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
 
         self._log_and_step_lr()
@@ -134,6 +147,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
         acc = torch.tensor(acc)
 
+        # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
         return {
             'val_loss': total_loss,
@@ -213,7 +227,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         t_total = len(self.train_dataloader()) // self.config.batch_size
         t_total = t_total // self.config.accumulate_grad_batches
 
-        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsilon)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,

@@ -1,3 +1,13 @@
+# Training an unofficial electra-small model
+
+ELECTRA comes from [this paper](https://openreview.net/pdf?id=r1xMH1BtvB),
+where they use a discriminative language modelling task to preptrain transformers.
+This experiment tries to approximately replicate their `electra-small` model.
+
+A few changes I made:
+1. using an ALBERT model for the generator model
+2. using embedding size = hidden size = 256 (huggingface BERT doesn't let you set them independently).
+
 ## Data Prep
 
 First, download the wikipedia dump
