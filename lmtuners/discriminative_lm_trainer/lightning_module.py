@@ -22,6 +22,7 @@ class DiscLMTrainingModuleConfig(Namespace):
     """Config class for DiscLMTrainingModule."""
     def __init__(self,
                  data_path,
+                 max_nb_epcohs=10,
                  d_loss_weight=50,
                  mlm=True,
                  mlm_prob=0.15,
@@ -37,6 +38,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  accumulate_grad_batches=1):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
+                         max_nb_epcohs=max_nb_epcohs,
                          mlm=mlm,
                          mlm_prob=mlm_prob,
                          max_seq_len=max_seq_len,
@@ -224,8 +226,8 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) // self.config.batch_size
-        t_total = t_total // self.config.accumulate_grad_batches
+        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
+        logger.info(f'Estimating {t_total} training steps.')
 
         optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsilon)
 

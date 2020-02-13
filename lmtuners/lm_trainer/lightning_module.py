@@ -17,6 +17,7 @@ class LMTrainingModuleConfig(Namespace):
     def __init__(
             self,
             data_path,
+            max_nb_epcohs=10,
             mlm=True,
             mlm_prob=0.15,
             max_seq_len=128,
@@ -32,6 +33,7 @@ class LMTrainingModuleConfig(Namespace):
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
+                         max_nb_epcohs=max_nb_epcohs,
                          max_seq_len=max_seq_len,
                          mlm_prob=mlm_prob,
                          save_path=save_path,
@@ -136,8 +138,8 @@ class LMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) // self.config.batch_size
-        t_total = t_total // self.config.accumulate_grad_batches
+        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
+        logger.info(f'Estimating {t_total} training steps.')
 
         optimizer = AdamW(optimizer_grouped_parameters,
                           lr=self.config.learning_rate,

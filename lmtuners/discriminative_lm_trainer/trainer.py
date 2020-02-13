@@ -74,7 +74,7 @@ class DiscLMTrainer:
                  accumulate_grad_batches=1,
                  gpus=1,
                  distributed_backend=None,
-                 max_nb_epochs=50,
+                 max_nb_epochs=10,
                  fast_dev_run=False,
                  use_amp=False,
                  amp_level='O2',
@@ -102,6 +102,7 @@ class DiscLMTrainer:
                                             batch_size=batch_size,
                                             num_workers=num_workers,
                                             shuffle=shuffle,
+                                            max_nb_epochs=max_nb_epochs,
                                             accumulate_grad_batches=accumulate_grad_batches)
 
         logging.debug('creating training module')
