@@ -110,17 +110,17 @@ class DiscLMTrainingModule(pl.LightningModule):
         d_out = self.discriminator(d_inputs,
                                    labels=d_labels,
                                    attention_mask=attention_mask)
-        return g_out, d_out, d_labels
-
-    def training_step(self, batch, batch_idx):
-        inputs, labels, attention_mask = batch
-        g_out, d_out, d_labels = self.forward(inputs, labels, attention_mask)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
+        d_scores = d_out[1]
+        return g_loss, d_loss, d_scores, d_labels
 
-        scores = d_out[1]
-        preds = torch.argmax(scores, dim=-1)
+    def training_step(self, batch, batch_idx):
+        inputs, labels, attention_mask = batch
+        g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
+
+        preds = torch.argmax(d_scores, dim=-1)
         acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
         acc = torch.tensor(acc)
 
@@ -139,13 +139,9 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_out, d_out, d_labels = self.forward(inputs, labels, attention_mask)
+        g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
 
-        g_loss = g_out[0]
-        d_loss = d_out[0]
-
-        scores = d_out[1]
-        preds = torch.argmax(scores, dim=-1)
+        preds = torch.argmax(d_scores, dim=-1)
         acc = torch.sum(preds == d_labels).item() / np.prod(d_labels.shape)
         acc = torch.tensor(acc)
 
