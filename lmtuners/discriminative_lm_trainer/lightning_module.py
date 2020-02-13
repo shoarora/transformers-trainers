@@ -162,8 +162,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         perplexity = torch.exp(torch.tensor(avg_g_loss))
 
-        self._save_model(self.generator, 'generator')
-        self._save_model(self.discriminator, 'discriminator')
+        self._save_model(self.generator.base_model, 'generator')
+        self._save_model(self.discriminator.base_model, 'discriminator')
 
         output_dir = os.path.join(self.config.save_path,
                                   f"{self.current_epoch}-{self.global_step}")

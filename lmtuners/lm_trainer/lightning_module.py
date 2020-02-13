@@ -105,7 +105,7 @@ class LMTrainingModule(pl.LightningModule):
             os.makedirs(output_dir)
         model_to_save = (self.model.module
                          if hasattr(self.model, "module") else self.model)
-        model_to_save.save_pretrained(output_dir)
+        model_to_save.base_model.save_pretrained(output_dir)
 
         if hasattr(self.tokenizer, 'save_pretrained'):
             self.tokenizer.save_pretrained(output_dir)
