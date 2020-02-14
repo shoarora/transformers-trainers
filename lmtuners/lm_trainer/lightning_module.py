@@ -114,7 +114,7 @@ class LMTrainingModule(pl.LightningModule):
         if self.checkpoint_fn:
             self.checkpoint_fn(self)
 
-        tensorboard_logs = {'val/loss': avg_loss, 'val/perplexity': perplexity}
+        tensorboard_logs = {'val_loss': avg_loss, 'val/loss': avg_loss, 'val/perplexity': perplexity}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):

@@ -176,6 +176,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             self.checkpoint_fn(self)
 
         tensorboard_logs = {
+            'val_loss': avg_loss,
             'val/loss': avg_loss,
             'val/d_loss': avg_d_loss,
             'val/g_loss': avg_g_loss,
