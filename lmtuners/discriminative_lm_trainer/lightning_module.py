@@ -240,7 +240,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         """
         # get LR schedulers from the pytorch-lightning trainer object.
         scheduler = self.trainer.lr_schedulers[0]
-        scheduler.step()
+        scheduler.step(epoch=self.global_step)
         for i, lr in enumerate(scheduler.get_lr()):
             # add the scalar to the test_tube Experiment object.
             self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
