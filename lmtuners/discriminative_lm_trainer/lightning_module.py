@@ -35,6 +35,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  batch_size=32,
                  num_workers=0,
                  shuffle=True,
+                 gpus=1,
                  accumulate_grad_batches=1):
         super().__init__(data_path=data_path,
                          d_loss_weight=d_loss_weight,
@@ -50,6 +51,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                          batch_size=batch_size,
                          num_workers=num_workers,
                          shuffle=shuffle,
+                         gpus=gpus,
                          accumulate_grad_batches=accumulate_grad_batches)
 
 
@@ -221,7 +223,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader().dataset) * self.config.max_nb_epochs // self.config.batch_size
+        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs * self.config.gpus
         logger.info(f'Estimating {t_total} training steps.')
 
         optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsilon)

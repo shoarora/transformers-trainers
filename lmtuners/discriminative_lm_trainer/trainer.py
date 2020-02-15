@@ -102,6 +102,7 @@ class DiscLMTrainer:
                                             batch_size=batch_size,
                                             num_workers=num_workers,
                                             shuffle=shuffle,
+                                            gpus=gpus,
                                             max_nb_epochs=max_nb_epochs,
                                             accumulate_grad_batches=accumulate_grad_batches)
 
