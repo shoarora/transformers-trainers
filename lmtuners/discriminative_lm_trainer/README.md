@@ -13,10 +13,11 @@ and similarly, the discriminator can be any `*ForSequenceClassification` model.
 ## Notes
 
 - This is still very much in development.
-- There are 
+- We currently use `tokenizers==0.2.1` directly.  `BertTokenizerFast` was not stable at time of dev.
 - pytorch-lightning supports distributed training but this doesn't yet because:
     - 1. Tokenizers aren't pickleable so we need to fix how they're passed around
     - 2. I don't have the resources to test it.
 - I wrote this as a trainer and not as just a one-off script because the original ELECTRA implementation
     recommends you to tie weights, and do some abnormal transformations on the models.  You should write your 
     own script that does this and then invoke this trainer [(example)](/experiments/electra_small)
+- Uses LAMB optimizer by default and there's no configurability for that yet. 
