@@ -221,7 +221,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
+        t_total = len(self.train_dataloader().dataset) * self.config.max_nb_epochs // self.config.batch_size
         logger.info(f'Estimating {t_total} training steps.')
 
         optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsilon)
