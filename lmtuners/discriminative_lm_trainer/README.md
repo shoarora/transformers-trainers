@@ -13,6 +13,20 @@ and similarly, the discriminator can be any `*ForSequenceClassification` model.
 ## Notes
 
 - This is still very much in development.
+- Expected dataset format: `data_path` points to a directory containing:
+        
+        ```
+        data_dir/
+            train/
+                text1.txt
+                text2.txt
+            val/
+                text3.txt
+            test/
+                text4.txt
+        ```
+
+    where each text file is consumed line-by-line.
 - We currently use `tokenizers==0.2.1` directly.  `BertTokenizerFast` was not stable at time of dev.
 - pytorch-lightning supports distributed training but this doesn't yet because:
     - 1. Tokenizers aren't pickleable so we need to fix how they're passed around
