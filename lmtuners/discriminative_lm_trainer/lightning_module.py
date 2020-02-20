@@ -71,15 +71,9 @@ class DiscLMTrainingModule(pl.LightningModule):
         self.tokenizer = tokenizer
 
         # get special tokens.
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.pad_token_id = self._tokenizer.tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self._tokenizer.tokenizer.token_to_id("[MASK]")
         self.vocab_size = generator.config.vocab_size
-
-        # configure max length and padding.
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.generator = generator
         self.discriminator = discriminator

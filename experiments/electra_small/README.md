@@ -33,7 +33,8 @@ unzip Gutenberg.zip
 mv Gutenberg/txt/* data
 ```
 
-Download the vocab file:
+Preprocess the data
+
 ```sh
-wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt
+python preprocess_data_files.py data data_processed
 ```

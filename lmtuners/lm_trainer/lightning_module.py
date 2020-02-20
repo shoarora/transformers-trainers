@@ -56,14 +56,9 @@ class LMTrainingModule(pl.LightningModule):
 
         self.tokenizer = tokenizer
 
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
+        self.pad_token_id = self._tokenizer.tokenizer.token_to_id("[PAD]")
+        self.mask_token_id = self._tokenizer.tokenizer.token_to_id("[MASK]")
         self.vocab_size = self.model.config.vocab_size
-
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.model = model
 

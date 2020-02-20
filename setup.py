@@ -24,7 +24,7 @@ setup(
     long_description=read("README.md"),
     packages=find_packages(exclude=('tests', )),
     install_requires=[
-        'transformers==2.4.0',
+        'transformers==2.5.0',
         'tokenizers==0.2.1',
         'fire==0.2.1',
         'pytorch-lightning==0.6.0',
