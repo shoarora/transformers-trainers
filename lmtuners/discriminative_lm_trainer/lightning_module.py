@@ -108,7 +108,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         # turn mask into new target labels.  1 (True) for corrupted, 0 otherwise.
         # if the prediction was correct, mark it as uncorrupted.
-        correct_preds = preds == labels
+        correct_preds = sampled_tokens == labels
         d_labels[correct_preds] = False
         d_labels = mask.long()
 
