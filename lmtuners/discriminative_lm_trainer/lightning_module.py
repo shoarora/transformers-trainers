@@ -93,14 +93,18 @@ class DiscLMTrainingModule(pl.LightningModule):
                                masked_lm_labels=labels,
                                attention_mask=attention_mask)
 
-        # get predictions for masked LM.
-        preds = torch.argmax(g_out[1], dim=-1)
+        # get samples from masked LM.
+        sample_probs = torch.softmax(g_out[1], dim=-1, dtype=torch.float32)
+        sample_probs = sample_probs.view(-1, self.vocab_size)
+
+        sampled_tokens = torch.multinomial(sample_probs, 1).view(-1)
+        sampled_tokens = sampled_tokens.view(d_inputs.shape[0])
 
         # labels have a -100 value to mask out loss from unchanged tokens.
         mask = labels.eq(-100)
 
         # replace the masked out tokens of the input with the generator predictions.
-        d_inputs[mask] = preds[mask]
+        d_inputs[mask] = sampled_tokens[mask]
 
         # turn mask into new target labels.  1 (True) for corrupted, 0 otherwise.
         # if the prediction was correct, mark it as uncorrupted.
