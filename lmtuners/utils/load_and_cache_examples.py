@@ -39,13 +39,25 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
     num_tokens = 0
     num_examples = 0
 
+    output_file = os.path.join(output_dir, f"{path}.pt")
+
+    if os.path.exists(output_file):
+        tokens = torch.load(output_file)
+        num_examples = len(tokens['ids'])
+        num_tokens = int(torch.sum(tokens['attention_masks']).numpy())
+        return {'num_examples': num_examples, 'num_tokens': num_tokens}
+
     def add_example(encoded):
         ids.append(encoded.ids)
         attention_masks.append(encoded.attention_mask)
         special_tokens_masks.append(encoded.special_tokens_mask)
 
     with open(os.path.join(data_dir, path)) as f:
-        texts = [line.strip() for line in f.readlines() if line.strip()]
+        try:
+            texts = [line.strip() for line in f.readlines() if line.strip()]
+        except:
+            print('error with', path)
+            return {'num_examples': 0, 'num_tokens': 0}
 
         if n_sentences == 0:
             pass
@@ -58,8 +70,11 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
                 for i in range(0, len(sentences), n_sentences):
                     texts.append(' '.join(sentences[i:i+n_sentences]))
 
-    for text in texts:
-        tokenized = tokenizer.encode(text)
+    encoded_batch = tokenizer.encode_batch(texts)
+    for tokenized in encoded_batch:
+
+    #for text in texts:
+    #    tokenized = tokenizer.encode(text)
         add_example(tokenized)
         num_examples += 1
         num_tokens += sum(tokenized.attention_mask)
@@ -78,7 +93,7 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
             torch.tensor(attention_masks, dtype=torch.bool),
             'special_tokens_masks':
             torch.tensor(special_tokens_masks, dtype=torch.bool)
-        }, os.path.join(output_dir, f"{path}.pt"))
+        }, output_file)
 
     return {
         'num_tokens': num_tokens,
