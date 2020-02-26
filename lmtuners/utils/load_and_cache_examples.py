@@ -3,6 +3,7 @@ import os
 import torch
 from tokenizers import BertWordPieceTokenizer
 from tqdm import tqdm
+from shutil import rmtree
 
 
 def load_and_cache_examples(data_dir,
@@ -10,6 +11,7 @@ def load_and_cache_examples(data_dir,
                             tokenizer=None,
                             tokenizer_path=None,
                             n_sentences=0,
+                            delete_existing=False,
                             max_length=512):
 
     if not tokenizer:
@@ -21,15 +23,20 @@ def load_and_cache_examples(data_dir,
     num_tokens = 0
     num_examples = 0
 
+    if delete_existing:
+        rmtree(output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
     pbar = tqdm(os.listdir(data_dir))
     for path in pbar:
-        result = process_one_file(data_dir, path, tokenizer, output_dir, n_sentences)
+        result = process_one_file(data_dir, path, tokenizer, output_dir,
+                                  n_sentences)
         num_examples += result['num_examples']
         num_tokens += result['num_tokens']
 
-        pbar.set_description(f"{num_tokens} tokens, {num_examples} examples, {num_tokens/(num_examples*max_length)} non-pad tokens")
+        pbar.set_description(
+            f"{num_tokens} tokens, {num_examples} examples, {num_tokens/(num_examples*max_length)} non-pad tokens"
+        )
 
 
 def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
@@ -55,8 +62,9 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
     with open(os.path.join(data_dir, path)) as f:
         try:
             texts = [line.strip() for line in f.readlines() if line.strip()]
-        except:
-            print('error with', path)
+        except Exception as e:
+            print(e)
+            print('skipping', path)
             return {'num_examples': 0, 'num_tokens': 0}
 
         if n_sentences == 0:
@@ -68,13 +76,10 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
                 sentences = list(texts)
                 texts = []
                 for i in range(0, len(sentences), n_sentences):
-                    texts.append(' '.join(sentences[i:i+n_sentences]))
+                    texts.append(' '.join(sentences[i:i + n_sentences]))
 
     encoded_batch = tokenizer.encode_batch(texts)
     for tokenized in encoded_batch:
-
-    #for text in texts:
-    #    tokenized = tokenizer.encode(text)
         add_example(tokenized)
         num_examples += 1
         num_tokens += sum(tokenized.attention_mask)
@@ -95,10 +100,7 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
             torch.tensor(special_tokens_masks, dtype=torch.bool)
         }, output_file)
 
-    return {
-        'num_tokens': num_tokens,
-        'num_examples': num_examples
-    }
+    return {'num_tokens': num_tokens, 'num_examples': num_examples}
 
 
 if __name__ == '__main__':
