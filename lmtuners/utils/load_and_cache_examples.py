@@ -9,7 +9,7 @@ def load_and_cache_examples(data_dir,
                             output_dir,
                             tokenizer=None,
                             tokenizer_path=None,
-                            line_by_line=False,
+                            n_sentences=0,
                             max_length=512):
 
     if not tokenizer:
@@ -25,14 +25,14 @@ def load_and_cache_examples(data_dir,
 
     pbar = tqdm(os.listdir(data_dir))
     for path in pbar:
-        result = process_one_file(data_dir, path, line_by_line, tokenizer, output_dir)
+        result = process_one_file(data_dir, path, tokenizer, output_dir, n_sentences)
         num_examples += result['num_examples']
         num_tokens += result['num_tokens']
 
-        pbar.set_description(f"{num_tokens} tokens, {num_examples} examples.")
+        pbar.set_description(f"{num_tokens} tokens, {num_examples} examples, {num_tokens/(num_examples*max_length)} non-pad tokens")
 
 
-def process_one_file(data_dir, path, line_by_line, tokenizer, output_dir):
+def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
     ids = []
     attention_masks = []
     special_tokens_masks = []
@@ -46,8 +46,17 @@ def process_one_file(data_dir, path, line_by_line, tokenizer, output_dir):
 
     with open(os.path.join(data_dir, path)) as f:
         texts = [line.strip() for line in f.readlines() if line.strip()]
-        if not line_by_line:
-            texts = [' '.join(texts)]
+
+        if n_sentences == 0:
+            pass
+        else:
+            text = ' '.join(texts)
+            texts = [f"{sent}." for sent in text.split('.')]
+            if n_sentences > 1:
+                sentences = list(texts)
+                texts = []
+                for i in range(0, len(sentences), n_sentences):
+                    texts.append(' '.join(sentences[i:i+n_sentences]))
 
     for text in texts:
         tokenized = tokenizer.encode(text)
@@ -64,11 +73,11 @@ def process_one_file(data_dir, path, line_by_line, tokenizer, output_dir):
     torch.save(
         {
             'ids':
-            torch.tensor(ids, dtype=torch.long),
+            torch.tensor(ids, dtype=torch.int8),
             'attention_masks':
-            torch.tensor(attention_masks, dtype=torch.long),
+            torch.tensor(attention_masks, dtype=torch.bool),
             'special_tokens_masks':
-            torch.tensor(special_tokens_masks, dtype=torch.long)
+            torch.tensor(special_tokens_masks, dtype=torch.bool)
         }, os.path.join(output_dir, f"{path}.pt"))
 
     return {
