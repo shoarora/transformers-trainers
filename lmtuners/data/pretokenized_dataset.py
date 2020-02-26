@@ -27,14 +27,12 @@ def create_concat_dataset(paths):
 
 class Collater(object):
     def __init__(self,
-                 tokenizer,
                  mlm=True,
                  mlm_prob=0.15,
                  pad_token_id=None,
                  mask_token_id=None,
                  vocab_size=None,
                  cls_token_id=None):
-        self.tokenizer = tokenizer
         self.mlm = mlm
         self.mlm_prob = mlm_prob
         self.pad_token_id = pad_token_id

@@ -10,7 +10,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 import torch
-from lmtuners.data import Collater, create_concat_dataset
+from lmtuners.data.pretokenized_dataset import Collater, create_concat_dataset
 from pytorch_lamb import Lamb
 from torch.utils.data import DataLoader
 from transformers import get_linear_schedule_with_warmup
@@ -257,7 +257,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def get_dataloader(self, path):
         paths = [os.path.join(path, name) for name in os.listdir(path)]
-        dataset = create_concat_dataset(self.tokenizer, paths)
+        dataset = create_concat_dataset(paths)
 
         if hasattr(self, 'is_distributed') and self.is_distributed:
             dist_sampler = torch.utils.data.distributed.DistributedSampler(
