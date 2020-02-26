@@ -43,7 +43,7 @@ class Collater(object):
     def __call__(self, examples):
         inputs, attention_masks, special_tokens_masks = zip(*examples)
         inputs = torch.stack(inputs).long()
-        attention_masks = torch.stack(attention_masks).float()
+        attention_masks = torch.stack(attention_masks).long()
         special_tokens_masks = torch.stack(special_tokens_masks)
 
         if self.mlm:
