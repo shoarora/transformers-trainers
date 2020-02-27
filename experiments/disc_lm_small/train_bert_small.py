@@ -1,7 +1,6 @@
 import os
 
 import fire
-import torch
 from pytorch_lightning import Trainer
 from tokenizers import BertWordPieceTokenizer
 from torch.utils.data import DataLoader
@@ -9,11 +8,6 @@ from transformers import BertConfig, BertForMaskedLM
 
 from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
 from lmtuners import LMTrainingModule, LMTrainingModuleConfig
-
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    pass
 
 
 def main(tokenizer_path,
@@ -67,8 +61,10 @@ def main(tokenizer_path,
                       val_check_interval=val_check_interval)
 
     # init dataloaders.
-    train_loader, val_loader, _ = get_dataloaders(
-        tokenizer, dataset_path, trainer, mlm_prob, batch_size, num_workers, shuffle)
+    train_loader, val_loader, _ = get_dataloaders(tokenizer, dataset_path,
+                                                  trainer, mlm_prob,
+                                                  batch_size, num_workers,
+                                                  shuffle)
 
     # train.
     trainer.fit(lightning_module, train_loader, val_loader)
@@ -87,19 +83,6 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
         paths = [os.path.join(path, name) for name in os.listdir(path)]
         dataset = create_pretokenized_dataset(paths)
 
-        if trainer.use_ddp or trainer.use_ddp2:
-            shuffle = False
-            sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        elif trainer.use_tpu:
-            shuffle = False
-            sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=shuffle)
-        else:
-            sampler = None
-
         collater = PreTokenizedCollater(
             mlm=True,
             mlm_prob=mlm_prob,
@@ -111,7 +94,6 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
                           batch_size=batch_size,
                           num_workers=num_workers,
                           collate_fn=collater,
-                          sampler=sampler,
                           shuffle=shuffle)
 
     train_loader = get_dataloader(os.path.join(dataset_path, 'train'))
