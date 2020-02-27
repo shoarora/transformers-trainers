@@ -19,7 +19,7 @@ except ImportError:
 
 def main(tokenizer_path,
          dataset_path,
-         save_path='bert-small',
+         save_path='electra-small',
          max_steps=1e6,
          accumulate_grad_batches=1,
          gpus=None,
