@@ -40,16 +40,12 @@ class DiscLMTrainingModule(pl.LightningModule):
                  generator,
                  discriminator,
                  config,
-                 checkpoint_fn=None,
-                 ddp_fn=None):
+                 checkpoint_fn=None):
         super().__init__()
 
         self.config = config
         self.hparams = config
         self.checkpoint_fn = checkpoint_fn
-        self.ddp_fn = ddp_fn
-        if ddp_fn:
-            logger.warning('ddp_fn functionality is not implemented yet.')
 
         print('set hparams:', self.hparams)
 
