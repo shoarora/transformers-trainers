@@ -19,13 +19,13 @@ class PreTokenizedFileDataset(Dataset):
         return self.ids[i], self.attention_masks[i], self.special_tokens_masks[i]
 
 
-def create_concat_dataset(paths):
+def create_pretokenized_dataset(paths):
     datasets = [PreTokenizedFileDataset(p) for p in paths]
     dataset = ConcatDataset(datasets)
     return dataset
 
 
-class Collater(object):
+class PreTokenizedCollater(object):
     def __init__(self,
                  mlm=True,
                  mlm_prob=0.15,

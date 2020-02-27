@@ -5,8 +5,6 @@ from argparse import Namespace
 
 import pytorch_lightning as pl
 import torch
-from lmtuners.data import Collater, create_concat_dataset
-from torch.utils.data import DataLoader
 from transformers import AdamW, get_linear_schedule_with_warmup
 
 logger = logging.getLogger(__name__)
@@ -15,21 +13,21 @@ logger = logging.getLogger(__name__)
 class LMTrainingModuleConfig(Namespace):
     """Config class LMTrainingModule."""
     def __init__(
-            self,
-            data_path,
-            max_nb_epochs=10,
-            mlm=True,
-            mlm_prob=0.15,
-            max_seq_len=128,
-            save_path=None,
-            weight_decay=0.0,
-            learning_rate=5e-5,
-            epsilon=1e-8,
-            warmup_steps=0,
-            batch_size=32,
-            num_workers=0,
-            shuffle=True,
-            accumulate_grad_batches=1,
+        self,
+        data_path,
+        max_nb_epochs=10,
+        mlm=True,
+        mlm_prob=0.15,
+        max_seq_len=128,
+        save_path=None,
+        weight_decay=0.0,
+        learning_rate=5e-5,
+        epsilon=1e-8,
+        warmup_steps=0,
+        batch_size=32,
+        num_workers=0,
+        shuffle=True,
+        accumulate_grad_batches=1,
     ):
         super().__init__(data_path=data_path,
                          mlm=mlm,
@@ -48,22 +46,13 @@ class LMTrainingModuleConfig(Namespace):
 
 
 class LMTrainingModule(pl.LightningModule):
-    def __init__(self, model, tokenizer, config, checkpoint_fn=None):
+    def __init__(self, model, config, checkpoint_fn=None):
         super().__init__()
         self.config = config
         self.hparams = config
         self.checkpoint_fn = checkpoint_fn
 
-        self.tokenizer = tokenizer
-
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
         self.vocab_size = model.config.vocab_size
-
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.model = model
 
@@ -107,14 +96,14 @@ class LMTrainingModule(pl.LightningModule):
                          if hasattr(self.model, "module") else self.model)
         model_to_save.base_model.save_pretrained(output_dir)
 
-        if hasattr(self.tokenizer, 'save_pretrained'):
-            self.tokenizer.save_pretrained(output_dir)
-        else:
-            self.tokenizer.save(output_dir, 'tokenizer')
         if self.checkpoint_fn:
             self.checkpoint_fn(self)
 
-        tensorboard_logs = {'val_loss': avg_loss, 'val/loss': avg_loss, 'val/perplexity': perplexity}
+        tensorboard_logs = {
+            'val_loss': avg_loss,
+            'val/loss': avg_loss,
+            'val/perplexity': perplexity
+        }
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
@@ -156,52 +145,9 @@ class LMTrainingModule(pl.LightningModule):
         """
         # get LR schedulers from the pytorch-lightning trainer object.
         scheduler = self.trainer.lr_schedulers[0]
-        scheduler.step()
+
+        # tie LR to global step
+        scheduler.step(epoch=self.global_step)
         for i, lr in enumerate(scheduler.get_lr()):
             # add the scalar to the test_tube Experiment object.
             self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
-
-    @property
-    def is_distributed(self):
-        if hasattr(self, 'trainer') and self.trainer.distributed_backend:
-            return 'ddp' in self.trainer.distributed_backend
-        return False
-
-    def get_dataloader(self, path):
-        paths = [os.path.join(path, name) for name in os.listdir(path)]
-        dataset = create_concat_dataset(self.tokenizer, paths)
-
-        if hasattr(self, 'is_distributed') and self.is_distributed:
-            dist_sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset)
-        else:
-            dist_sampler = None
-
-        collater = Collater(self.tokenizer,
-                            mlm=self.config.mlm,
-                            mlm_prob=self.config.mlm_prob,
-                            pad_token_id=self.pad_token_id,
-                            mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size)
-
-        return DataLoader(dataset,
-                          batch_size=self.config.batch_size,
-                          num_workers=self.config.num_workers,
-                          collate_fn=collater,
-                          sampler=dist_sampler,
-                          shuffle=self.config.shuffle)
-
-    @pl.data_loader
-    def train_dataloader(self):
-        path = os.path.join(self.config.data_path, 'train')
-        return self.get_dataloader(path)
-
-    @pl.data_loader
-    def val_dataloader(self):
-        path = os.path.join(self.config.data_path, 'val')
-        return self.get_dataloader(path)
-
-    @pl.data_loader
-    def test_dataloader(self):
-        path = os.path.join(self.config.data_path, 'test')
-        return self.get_dataloader(path)

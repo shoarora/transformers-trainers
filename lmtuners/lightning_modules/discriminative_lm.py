@@ -10,9 +10,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 import torch
-from lmtuners.data.pretokenized_dataset import Collater, create_concat_dataset
 from pytorch_lamb import Lamb
-from torch.utils.data import DataLoader
 from transformers import get_linear_schedule_with_warmup
 
 logger = logging.getLogger(__name__)
@@ -56,7 +54,12 @@ class DiscLMTrainingModuleConfig(Namespace):
 
 
 class DiscLMTrainingModule(pl.LightningModule):
-    def __init__(self, generator, discriminator, tokenizer, config, checkpoint_fn=None, ddp_fn=None):
+    def __init__(self,
+                 generator,
+                 discriminator,
+                 config,
+                 checkpoint_fn=None,
+                 ddp_fn=None):
         super().__init__()
 
         self.config = config
@@ -68,18 +71,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         print('set hparams:', self.hparams)
 
-        self.tokenizer = tokenizer
-
-        # get special tokens.
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
         self.vocab_size = generator.config.vocab_size
-
-        # configure max length and padding.
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.generator = generator
         self.discriminator = discriminator
@@ -124,7 +116,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
+        g_loss, d_loss, d_scores, d_labels = self.forward(
+            inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
         acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
@@ -144,7 +137,8 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
+        g_loss, d_loss, d_scores, d_labels = self.forward(
+            inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
         acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
@@ -173,10 +167,6 @@ class DiscLMTrainingModule(pl.LightningModule):
                                   f"{self.current_epoch}-{self.global_step}")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        if hasattr(self.tokenizer, 'save_pretrained'):
-            self.tokenizer.save_pretrained(output_dir)
-        else:
-            self.tokenizer.save(output_dir, 'tokenizer')
 
         if self.checkpoint_fn:
             self.checkpoint_fn(self)
@@ -227,10 +217,13 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs * self.config.gpus
+        t_total = len(self.train_dataloader()
+                      ) * self.config.max_nb_epochs * self.config.gpus
         logger.info(f'Estimating {t_total} training steps.')
 
-        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters,
+                         lr=self.config.learning_rate,
+                         eps=self.config.epsilon)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
@@ -244,51 +237,9 @@ class DiscLMTrainingModule(pl.LightningModule):
         """
         # get LR schedulers from the pytorch-lightning trainer object.
         scheduler = self.trainer.lr_schedulers[0]
+
+        # tie LR stepping to global step.
         scheduler.step(epoch=self.global_step)
         for i, lr in enumerate(scheduler.get_lr()):
             # add the scalar to the test_tube Experiment object.
             self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
-
-    @property
-    def is_distributed(self):
-        if hasattr(self, 'trainer') and self.trainer.distributed_backend:
-            return 'ddp' in self.trainer.distributed_backend
-        return False
-
-    def get_dataloader(self, path):
-        paths = [os.path.join(path, name) for name in os.listdir(path)]
-        dataset = create_concat_dataset(paths)
-
-        if hasattr(self, 'is_distributed') and self.is_distributed:
-            dist_sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset)
-        else:
-            dist_sampler = None
-
-        collater = Collater(mlm=self.config.mlm,
-                            mlm_prob=self.config.mlm_prob,
-                            pad_token_id=self.pad_token_id,
-                            mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size)
-
-        return DataLoader(dataset,
-                          batch_size=self.config.batch_size,
-                          num_workers=self.config.num_workers,
-                          collate_fn=collater,
-                          sampler=dist_sampler,
-                          shuffle=self.config.shuffle)
-
-    @pl.data_loader
-    def train_dataloader(self):
-        path = os.path.join(self.config.data_path, 'train')
-        return self.get_dataloader(path)
-
-    @pl.data_loader
-    def val_dataloader(self):
-        path = os.path.join(self.config.data_path, 'val')
-        return self.get_dataloader(path)
-
-    @pl.data_loader
-    def test_dataloader(self):
-        path = os.path.join(self.config.data_path, 'test')
-        return self.get_dataloader(path)
