@@ -1,10 +1,15 @@
-# Training an unofficial electra-small model
+# Discriminative LM (small) Experiments
+
+This directory contains code for training:
+
+1. a baseline BERT-small model
+2. an unofficial ELECTRA-small model (with a couple changes)
+3. an attempt at an ALECTRA-small (an ALBERT model trained in the ELECTRA scheme)
 
 ELECTRA comes from [this paper](https://openreview.net/pdf?id=r1xMH1BtvB),
 where they use a discriminative language modelling task to preptrain transformers.
-This experiment tries to approximately replicate their `electra-small` model.
 
-A few changes I made:
+A few changes I made to ELECTRA:
 1. using an ALBERT model for the generator model
 2. using embedding size = hidden size = 256 (huggingface BERT doesn't let you set them independently).
 
@@ -40,5 +45,20 @@ wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab
 
 Pre-tokenize the data:
 ```sh
-python -m lmtuners.utils.tokenize_and_cache_data data data_tokenized_128 --tokenizer_path bert-base-uncased-vocab.txt --max_length=128 --n_sentences=40
+python -m lmtuners.utils.tokenize_and_cache_data data/ data_tokenized_128/ --tokenizer_path bert-base-uncased-vocab.txt --max_length=128 --n_sentences=40
 ```
+
+Split the datatset into train/val/test
+```sh
+python -m lmtuners.utils.create_dataset_splits data_tokenized_128
+```
+
+## Training the models
+
+### BERT-small
+
+### ELECTRA-small
+
+### ALECTRA-small
+
+## Results
