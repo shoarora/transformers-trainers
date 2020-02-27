@@ -8,8 +8,9 @@ from torch.utils.data import DataLoader
 from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
                           BertForTokenClassification)
 
-from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
 from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
+from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
+from lmtuners.utils import tie_weights
 
 try:
     import torch_xla.core.xla_model as xm
@@ -55,6 +56,14 @@ def main(tokenizer_path,
         max_position_embedding=128)
     discriminator = BertForTokenClassification(discriminator_config)
 
+    # tie the embeddingg weights.
+    tie_weights(generator.albert.embeddings.word_embeddings,
+                discriminator.bert.embeddings.word_embeddings)
+    tie_weights(generator.albert.embeddings.position_embeddings,
+                discriminator.bert.embeddings.position_embeddings)
+    tie_weights(generator.albert.embeddings.token_type_embeddings,
+                discriminator.bert.embeddings.token_type_embeddings)
+
     # init training module.
     training_config = DiscLMTrainingModuleConfig(max_steps,
                                                  save_path=save_path,
@@ -80,9 +89,10 @@ def main(tokenizer_path,
                       val_check_interval=val_check_interval)
 
     # init dataloaders.
-    train_loader, val_loader, _ = get_dataloaders(
-        tokenizer, dataset_path, trainer, mlm_prob, batch_size, num_workers,
-        shuffle)
+    train_loader, val_loader, _ = get_dataloaders(tokenizer, dataset_path,
+                                                  trainer, mlm_prob,
+                                                  batch_size, num_workers,
+                                                  shuffle)
 
     # train.
     trainer.fit(lightning_module, train_loader, val_loader)
