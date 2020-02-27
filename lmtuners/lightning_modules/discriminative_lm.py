@@ -19,38 +19,20 @@ logger = logging.getLogger(__name__)
 class DiscLMTrainingModuleConfig(Namespace):
     """Config class for DiscLMTrainingModule."""
     def __init__(self,
-                 data_path,
-                 max_nb_epochs=10,
+                 num_steps,
                  d_loss_weight=50,
-                 mlm=True,
-                 mlm_prob=0.15,
                  save_path=None,
-                 max_seq_len=128,
                  weight_decay=0.0,
                  learning_rate=5e-5,
                  epsilon=1e-8,
-                 warmup_steps=0,
-                 batch_size=32,
-                 num_workers=0,
-                 shuffle=True,
-                 gpus=1,
-                 accumulate_grad_batches=1):
-        super().__init__(data_path=data_path,
-                         d_loss_weight=d_loss_weight,
-                         max_nb_epochs=max_nb_epochs,
-                         mlm=mlm,
-                         mlm_prob=mlm_prob,
-                         max_seq_len=max_seq_len,
+                 warmup_steps=0):
+        super().__init__(d_loss_weight=d_loss_weight,
+                         num_steps=num_steps,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
                          epsilon=epsilon,
-                         warmup_steps=warmup_steps,
-                         batch_size=batch_size,
-                         num_workers=num_workers,
-                         shuffle=shuffle,
-                         gpus=gpus,
-                         accumulate_grad_batches=accumulate_grad_batches)
+                         warmup_steps=warmup_steps)
 
 
 class DiscLMTrainingModule(pl.LightningModule):
@@ -217,9 +199,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()
-                      ) * self.config.max_nb_epochs * self.config.gpus
-        logger.info(f'Estimating {t_total} training steps.')
+        t_total = self.config.num_steps
 
         optimizer = Lamb(optimizer_grouped_parameters,
                          lr=self.config.learning_rate,

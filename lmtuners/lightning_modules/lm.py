@@ -14,18 +14,16 @@ class LMTrainingModuleConfig(Namespace):
     """Config class LMTrainingModule."""
     def __init__(
         self,
-        max_nb_epochs=10,
+        num_steps,
         mlm=True,
-        max_seq_len=128,
         save_path=None,
         weight_decay=0.0,
         learning_rate=5e-5,
         epsilon=1e-8,
         warmup_steps=0,
     ):
-        super().__init__(mlm=mlm,
-                         max_nb_epochs=max_nb_epochs,
-                         max_seq_len=max_seq_len,
+        super().__init__(num_steps=num_steps,
+                         mlm=mlm,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
@@ -115,8 +113,7 @@ class LMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs
-        logger.info(f'Estimating {t_total} training steps.')
+        t_total = self.config.num_steps
 
         optimizer = AdamW(optimizer_grouped_parameters,
                           lr=self.config.learning_rate,
