@@ -9,7 +9,7 @@ from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
                           BertForTokenClassification)
 
 from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
-from lmtuners.models import DiscLMTrainingModule, DiscLMTrainingModuleConfig
+from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
 
 try:
     import torch_xla.core.xla_model as xm
@@ -80,12 +80,12 @@ def main(tokenizer_path,
                       val_check_interval=val_check_interval)
 
     # init dataloaders.
-    train_loader, val_loader, test_loader = get_dataloaders(
+    train_loader, val_loader, _ = get_dataloaders(
         tokenizer, dataset_path, trainer, mlm_prob, batch_size, num_workers,
         shuffle)
 
     # train.
-    trainer.fit(lightning_module, train_loader, val_loader, test_loader)
+    trainer.fit(lightning_module, train_loader, val_loader)
 
 
 def polyaxon_checkpoint_fn(lightning_module):
@@ -126,10 +126,10 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
                           sampler=sampler,
                           shuffle=shuffle)
 
-        train_loader = get_dataloader(os.path.join(dataset_path, 'train'))
-        val_loader = get_dataloader(os.path.join(dataset_path, 'val'))
-        test_loader = get_dataloader(os.path.join(dataset_path, 'test'))
-        return train_loader, val_loader, test_loader
+    train_loader = get_dataloader(os.path.join(dataset_path, 'train'))
+    val_loader = get_dataloader(os.path.join(dataset_path, 'val'))
+    test_loader = get_dataloader(os.path.join(dataset_path, 'test'))
+    return train_loader, val_loader, test_loader
 
 
 if __name__ == '__main__':
