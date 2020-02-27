@@ -6,7 +6,7 @@ from tqdm import tqdm
 from shutil import rmtree
 
 
-def load_and_cache_examples(data_dir,
+def tokenize_and_cache_data(data_dir,
                             output_dir,
                             tokenizer=None,
                             tokenizer_path=None,
@@ -104,4 +104,4 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
 
 
 if __name__ == '__main__':
-    fire.Fire(load_and_cache_examples)
+    fire.Fire(tokenize_and_cache_data)

@@ -40,5 +40,5 @@ wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab
 
 Pre-tokenize the data:
 ```sh
-python -m lmtuners.utils.load_and_cache_examples data data_tokenized_128 --tokenizer_path bert-base-uncased-vocab.txt --max_length=128 --n_sentences=40
+python -m lmtuners.utils.tokenize_and_cache_data data data_tokenized_128 --tokenizer_path bert-base-uncased-vocab.txt --max_length=128 --n_sentences=40
 ```
