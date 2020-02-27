@@ -27,7 +27,7 @@ setup(
         'transformers>=2.5.0',
         'tokenizers>=0.5.0',
         'fire>=0.2.1',
-        'pytorch-lightning>=0.6.1',
+        'pytorch-lightning>=0.6.0',
         'pytorch-lamb @ git+ssh://git@github.com/cybertronai/pytorch-lamb.git'
     ],
     classifiers=[
