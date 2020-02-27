@@ -88,10 +88,10 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
         dataset = create_pretokenized_dataset(paths)
 
         if trainer.use_ddp or trainer.use_ddp2:
-            shuffle = None
+            shuffle = False
             sampler = torch.utils.data.distributed.DistributedSampler(dataset)
         elif trainer.use_tpu:
-            shuffle = None
+            shuffle = False
             sampler = torch.utils.data.distributed.DistributedSampler(
                 dataset,
                 num_replicas=xm.xrt_world_size(),
