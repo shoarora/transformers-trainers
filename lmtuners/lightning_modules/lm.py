@@ -14,35 +14,23 @@ class LMTrainingModuleConfig(Namespace):
     """Config class LMTrainingModule."""
     def __init__(
         self,
-        data_path,
         max_nb_epochs=10,
         mlm=True,
-        mlm_prob=0.15,
         max_seq_len=128,
         save_path=None,
         weight_decay=0.0,
         learning_rate=5e-5,
         epsilon=1e-8,
         warmup_steps=0,
-        batch_size=32,
-        num_workers=0,
-        shuffle=True,
-        accumulate_grad_batches=1,
     ):
-        super().__init__(data_path=data_path,
-                         mlm=mlm,
+        super().__init__(mlm=mlm,
                          max_nb_epochs=max_nb_epochs,
                          max_seq_len=max_seq_len,
-                         mlm_prob=mlm_prob,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
                          epsilon=epsilon,
-                         warmup_steps=warmup_steps,
-                         batch_size=batch_size,
-                         num_workers=num_workers,
-                         shuffle=shuffle,
-                         accumulate_grad_batches=accumulate_grad_batches)
+                         warmup_steps=warmup_steps)
 
 
 class LMTrainingModule(pl.LightningModule):
