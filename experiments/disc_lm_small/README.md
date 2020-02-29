@@ -53,6 +53,15 @@ Split the datatset into train/val/test
 python -m lmtuners.utils.create_dataset_splits data_tokenized_128
 ```
 
+Install the requirements for experiments
+```sh
+pip install -r experiments/disc_lm_small/requirements.txt
+
+# NOTE, it currently installs my personal branch of pytorch-lightning due
+# to a bug fix surrounding passing dataloaders to trainer.fit() directly
+# on TPU/DDP.
+```
+
 ## Training the models
 
 ### BERT-small

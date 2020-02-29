@@ -1,1 +1,1 @@
-git+https://github.com/PytorchLightning/pytorch-lightning.git@d856989
+git+https://github.com/shoarora/pytorch-lightning.git@patch-dataloader-callable
