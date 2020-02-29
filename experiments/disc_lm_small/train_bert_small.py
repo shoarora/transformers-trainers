@@ -20,6 +20,8 @@ def main(tokenizer_path,
          distributed_backend=None,
          val_check_interval=0.25,
          mlm_prob=0.15,
+         learning_rate=5e-4,
+         warmup_steps=10000,
          batch_size=128,
          num_workers=2,
          shuffle=True,
@@ -41,9 +43,9 @@ def main(tokenizer_path,
                                              mlm=True,
                                              save_path=save_path,
                                              weight_decay=0.1,
-                                             learning_rate=5e-4,
+                                             learning_rate=learning_rate,
                                              epsilon=1e-6,
-                                             warmup_steps=10000)
+                                             warmup_steps=warmup_steps)
     if use_polyaxon:
         checkpoint_fn = polyaxon_checkpoint_fn
     else:
