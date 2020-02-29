@@ -6,8 +6,6 @@ import logging
 import os
 from argparse import Namespace
 
-import numpy as np
-
 import pytorch_lightning as pl
 import torch
 from pytorch_lamb import Lamb
@@ -98,7 +96,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
+        acc = torch.sum(preds == d_labels) / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -119,7 +117,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
+        acc = torch.sum(preds == d_labels) / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
