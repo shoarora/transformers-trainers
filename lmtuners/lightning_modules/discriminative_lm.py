@@ -96,7 +96,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels) / d_labels.numel()
+        acc = torch.sum(preds == d_labels).float() / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -117,7 +117,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             inputs, labels, attention_mask)
 
         preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels) / d_labels.numel()
+        acc = torch.sum(preds == d_labels).float() / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
