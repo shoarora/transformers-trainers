@@ -34,11 +34,7 @@ class DiscLMTrainingModuleConfig(Namespace):
 
 
 class DiscLMTrainingModule(pl.LightningModule):
-    def __init__(self,
-                 generator,
-                 discriminator,
-                 config,
-                 checkpoint_fn=None):
+    def __init__(self, generator, discriminator, config, checkpoint_fn=None):
         super().__init__()
 
         self.config = config
@@ -136,16 +132,17 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         perplexity = torch.exp(avg_g_loss)
 
-        self._save_model(self.generator.base_model, 'generator')
-        self._save_model(self.discriminator.base_model, 'discriminator')
+        if self.trainer.proc_rank == 0:
+            self._save_model(self.generator.base_model, 'generator')
+            self._save_model(self.discriminator.base_model, 'discriminator')
 
-        output_dir = os.path.join(self.config.save_path,
-                                  f"{self.current_epoch}-{self.global_step}")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+            output_dir = os.path.join(
+                self.config.save_path, f"{self.current_epoch}-{self.global_step}")
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
 
-        if self.checkpoint_fn:
-            self.checkpoint_fn(self)
+            if self.checkpoint_fn:
+                self.checkpoint_fn(self)
 
         tensorboard_logs = {
             'val_loss': avg_loss,
