@@ -5,7 +5,7 @@ import torch
 from pytorch_lightning import Trainer
 from tokenizers import BertWordPieceTokenizer
 from torch.utils.data import DataLoader
-from transformers import (AlbertConfig, AlbertForMaskedLM, BertConfig,
+from transformers import (BertConfig, BertForMaskedLM,
                           BertForTokenClassification)
 
 from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
@@ -38,15 +38,14 @@ def main(tokenizer_path,
     tokenizer = BertWordPieceTokenizer(tokenizer_path)
 
     # init generator.
-    generator_config = AlbertConfig(
+    generator_config = BertConfig(
         vocab_size=tokenizer._tokenizer.get_vocab_size(),
         hidden_size=256,
-        embedding_size=256,
         num_hidden_layers=3,
         num_attention_heads=1,
         intermediate_size=256,
         max_position_embedding=128)
-    generator = AlbertForMaskedLM(generator_config)
+    generator = BertForMaskedLM(generator_config)
 
     # init discriminator.
     discriminator_config = BertConfig(

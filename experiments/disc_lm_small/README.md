@@ -71,3 +71,11 @@ pip install -r experiments/disc_lm_small/requirements.txt
 ### ALECTRA-small
 
 ## Results
+| Method                   |# params | MNLI | MRPC | QNLI | QQP  | RTE  | SST-2 | STS-B |
+|--------------------------|---------|------|------|------|------|------|-------|-------|
+| BERT-base                |  110M   | 83.5 | 89.5 | 91.2 | 89.8 | 71.1 | 91.5  | 88.9  |
+| DistillBERT              |   66M   | 79.0 | 87.5 | 85.3 | 84.9 | 59.9 | 90.7  | 81.2  |
+| GPT                      |   117M  | 88.1 | 75.7 | 85.3 | 88.5 | 56.0 | 91.3  | 80.0  |
+| ELECTRA-small (official) |   14M   | 79.7 | 83.7 | 87.7 | 88.0 | 60.8 | 89.1  | 80.3  |
+| ELECTRA-small (ours)     |   17M   | ???? | ???? | ???? | ???? | ???? | ????  | ????  |
+| ALECTRA-small (ours)     |   ??M   | ???? | ???? | ???? | ???? | ???? | ????  | ????  |
