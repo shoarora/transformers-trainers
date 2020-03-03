@@ -58,11 +58,11 @@ def main(tokenizer_path,
     discriminator = BertForTokenClassification(discriminator_config)
 
     # tie the embeddingg weights.
-    tie_weights(generator.albert.embeddings.word_embeddings,
+    tie_weights(generator.bert.embeddings.word_embeddings,
                 discriminator.bert.embeddings.word_embeddings)
-    tie_weights(generator.albert.embeddings.position_embeddings,
+    tie_weights(generator.bert.embeddings.position_embeddings,
                 discriminator.bert.embeddings.position_embeddings)
-    tie_weights(generator.albert.embeddings.token_type_embeddings,
+    tie_weights(generator.bert.embeddings.token_type_embeddings,
                 discriminator.bert.embeddings.token_type_embeddings)
 
     # init training module.
