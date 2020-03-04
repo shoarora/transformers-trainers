@@ -118,10 +118,10 @@ class DiscLMTrainingModule(pl.LightningModule):
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
         return {
-            'val_loss': total_loss,
-            'val_d_loss': d_loss,
-            'val_g_loss': g_loss,
-            'val_d_acc': acc
+            'val_loss': total_loss.detach.cpu(),
+            'val_d_loss': d_loss.detach.cpu(),
+            'val_g_loss': g_loss.detach.cpu(),
+            'val_d_acc': acc.detach.cpu(),
         }
 
     def validation_end(self, outputs):
