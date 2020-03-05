@@ -23,6 +23,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  weight_decay=0.0,
                  learning_rate=5e-5,
                  epsilon=1e-8,
+                 save_on_val=False,
                  warmup_steps=0):
         super().__init__(d_loss_weight=d_loss_weight,
                          num_steps=num_steps,
@@ -30,6 +31,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
                          epsilon=epsilon,
+                         save_on_val=save_on_val,
                          warmup_steps=warmup_steps)
 
 
@@ -145,13 +147,14 @@ class DiscLMTrainingModule(pl.LightningModule):
         perplexity = torch.exp(avg_g_loss)
 
         if self.trainer.proc_rank == 0:
-            self._save_model(self.generator.base_model, 'generator')
-            self._save_model(self.discriminator.base_model, 'discriminator')
+            if self.config.save_on_val:
+                self._save_model(self.generator.base_model, 'generator')
+                self._save_model(self.discriminator.base_model, 'discriminator')
 
-            output_dir = os.path.join(
-                self.config.save_path, f"{self.current_epoch}-{self.global_step}")
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+                output_dir = os.path.join(
+                    self.config.save_path, f"{self.current_epoch}-{self.global_step}")
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
 
             if self.checkpoint_fn:
                 self.checkpoint_fn(self)

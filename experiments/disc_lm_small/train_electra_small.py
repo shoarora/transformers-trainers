@@ -102,7 +102,8 @@ def main(tokenizer_path,
 def polyaxon_checkpoint_fn(lightning_module):
     from polyaxon_client.tracking import Experiment
     exp = Experiment()
-    exp.outputs_store.upload_dir(lightning_module.config.save_path)
+    if os.path.exists(lightning_module.config.save_path):
+        exp.outputs_store.upload_dir(lightning_module.config.save_path)
     exp.outputs_store.upload_dir('lightning_logs')
 
 
