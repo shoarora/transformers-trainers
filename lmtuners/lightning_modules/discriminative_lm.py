@@ -83,16 +83,21 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         g_loss = g_out[0]
         d_loss = d_out[0]
+        g_scores = g_out[1]
         d_scores = d_out[1]
-        return g_loss, d_loss, d_scores, d_labels
+        return g_loss, d_loss, g_scores, d_scores, d_labels
 
     def training_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_loss, d_loss, d_scores, d_labels = self.forward(
+        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
             inputs, labels, attention_mask)
 
-        preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels).float() / d_labels.numel()
+        g_preds = torch.argmax(g_scores, dim=-1)
+        correct_preds = (g_preds == labels)[labels.ne(-100)]
+        g_acc = torch.sum(correct_preds).float() / correct_preds.numel()
+
+        d_preds = torch.argmax(d_scores, dim=-1)
+        d_acc = torch.sum(d_preds == d_labels).float() / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -103,17 +108,22 @@ class DiscLMTrainingModule(pl.LightningModule):
             'train/loss': total_loss,
             'train/d_loss': d_loss,
             'train/g_loss': g_loss,
-            'train/d_acc': acc
+            'train/g_acc': g_acc,
+            'train/d_acc': d_acc
         }
         return {'loss': total_loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_loss, d_loss, d_scores, d_labels = self.forward(
+        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
             inputs, labels, attention_mask)
 
-        preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels).float() / d_labels.numel()
+        g_preds = torch.argmax(g_scores, dim=-1)
+        correct_preds = (g_preds == labels)[labels.ne(-100)]
+        g_acc = torch.sum(correct_preds).float() / correct_preds.numel()
+
+        d_preds = torch.argmax(d_scores, dim=-1)
+        d_acc = torch.sum(d_preds == d_labels).float() / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -121,13 +131,15 @@ class DiscLMTrainingModule(pl.LightningModule):
             'val_loss': total_loss,
             'val_d_loss': d_loss,
             'val_g_loss': g_loss,
-            'val_d_acc': acc
+            'val_g_acc': g_acc,
+            'val_d_acc': d_acc
         }
 
     def validation_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         avg_d_loss = torch.stack([x['val_d_loss'] for x in outputs]).mean()
         avg_g_loss = torch.stack([x['val_g_loss'] for x in outputs]).mean()
+        avg_g_acc = torch.stack([x['val_g_acc'] for x in outputs]).mean()
         avg_d_acc = torch.stack([x['val_d_acc'] for x in outputs]).mean()
 
         perplexity = torch.exp(avg_g_loss)
@@ -150,6 +162,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             'val/d_loss': avg_d_loss,
             'val/g_loss': avg_g_loss,
             'val/perplexity': perplexity,
+            'val/g_acc': avg_g_acc,
             'val/d_acc': avg_d_acc
         }
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
