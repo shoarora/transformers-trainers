@@ -98,6 +98,11 @@ def main(tokenizer_path,
     # train.
     trainer.fit(lightning_module, train_loader, val_loader)
 
+    # save the model.
+    lightning_module.save_model(lightning_module.discriminator.base_model, 'discriminator')
+    if checkpoint_fn:
+        checkpoint_fn(lightning_module)
+
 
 def polyaxon_checkpoint_fn(lightning_module):
     from polyaxon_client.tracking import Experiment
