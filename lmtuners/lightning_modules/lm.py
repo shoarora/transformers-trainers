@@ -58,7 +58,7 @@ class LMTrainingModule(pl.LightningModule):
         outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
         perplexity = torch.exp(loss)
-        self._log_and_step_lr()
+        self._log_lr()
         tensorboard_logs = {'train/loss': loss, 'train/perplexity': perplexity}
         return {'loss': loss, 'log': tensorboard_logs}
 
@@ -123,16 +123,20 @@ class LMTrainingModule(pl.LightningModule):
             num_warmup_steps=self.config.warmup_steps,
             num_training_steps=t_total)
 
-        return [optimizer], [scheduler]
+        scheduler_config = {
+            'scheduler': scheduler,
+            'interval': 'step'
+        }
 
-    def _log_and_step_lr(self):
+        return [optimizer], [scheduler_config]
+
+    def _log_lr(self):
         """Logs learning rate to tensorboard.
         """
         # get LR schedulers from the pytorch-lightning trainer object.
-        scheduler = self.trainer.lr_schedulers[0]
+        scheduler = self.trainer.lr_schedulers[0]['scheduler']
 
-        # tie LR to global step
-        scheduler.step(epoch=self.global_step)
+        # tie LR stepping to global step.
         for i, lr in enumerate(scheduler.get_lr()):
-            # add the scalar to the test_tube Experiment object.
+            # add the scalar to the Experiment object.
             self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
