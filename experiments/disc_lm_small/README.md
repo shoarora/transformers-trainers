@@ -71,11 +71,31 @@ pip install -r experiments/disc_lm_small/requirements.txt
 ### ALECTRA-small
 
 ## Results
-| Method                   |# params | MNLI | MRPC | QNLI | QQP  | RTE  | SST-2 | STS-B |
-|--------------------------|---------|------|------|------|------|------|-------|-------|
-| BERT-base                |  110M   | 83.5 | 89.5 | 91.2 | 89.8 | 71.1 | 91.5  | 88.9  |
-| DistillBERT              |   66M   | 79.0 | 87.5 | 85.3 | 84.9 | 59.9 | 90.7  | 81.2  |
-| GPT                      |   117M  | 88.1 | 75.7 | 85.3 | 88.5 | 56.0 | 91.3  | 80.0  |
-| ELECTRA-small (official) |   14M   | 79.7 | 83.7 | 87.7 | 88.0 | 60.8 | 89.1  | 80.3  |
-| ELECTRA-small (ours)     |   17M   | ???? | ???? | ???? | ???? | ???? | ????  | ????  |
-| ALECTRA-small (ours)     |   ??M   | ???? | ???? | ???? | ???? | ???? | ????  | ????  |
+
+### GLUE
+
+#### Evaluation Method
+- Following BERT, disregard results on WNLI
+- For RTE and STS, start from an intermedate checkpoint from MNLI
+- For RTE do this with `lr=2e-5`
+
+- accuracy is used for SST2, MNLI, QNLI, and RTE
+- F1 and accuracy are used for MRPC and QQP
+- pearson and spearman are used for STS-B
+- matthew's is used for CoLA
+- average result on MNLI-m and MNLI-mm; the results on MRPC and QQP are reported with
+    the average of F1 and accuracy; the result reported on
+    STS-B is the average of the Pearson correlation and Spearman correlation.
+
+#### Metrics
+All reported results are on GLUE dev _except_ ELECTRA-small (official)
+which only reported task-by-task scores for the test set.
+
+| Model                          |# params | MNLI | MRPC | QNLI | QQP  | RTE  | SST-2 | STS-B |
+|--------------------------------|---------|------|------|------|------|------|-------|-------|
+| BERT-base                      |  110M   | 83.5 | 89.5 | 91.2 | 89.8 | 71.1 | 91.5  | 88.9  |
+| DistillBERT                    |   66M   | 79.0 | 87.5 | 85.3 | 84.9 | 59.9 | 90.7  | 81.2  |
+| GPT                            |   117M  | 88.1 | 75.7 | 85.3 | 88.5 | 56.0 | 91.3  | 80.0  |
+| ELECTRA-small (official test)  |   14M   | 79.7 | 83.7 | 87.7 | 88.0 | 60.8 | 89.1  | 80.3  |
+| ELECTRA-small (ours)           |   17M   | ???? | ???? | ???? | ???? | ???? | ????  | ????  |
+| ALECTRA-small (ours)           |   ??M   | ???? | ???? | ???? | ???? | ???? | ????  | ????  |
