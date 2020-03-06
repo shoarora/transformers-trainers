@@ -108,8 +108,8 @@ def main(tokenizer_path,
     trainer.fit(lightning_module, train_loader, val_loader)
 
     # save the model.
-    lightning_module.save_model(lightning_module.discriminator.base_model,
-                                'discriminator')
+    output_path = os.path.join(save_path, 'discriminator', 'final')
+    lightning_module.discriminator.save_pretrained(output_path)
     if checkpoint_fn:
         checkpoint_fn(lightning_module)
 
