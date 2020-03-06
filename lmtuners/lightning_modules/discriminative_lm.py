@@ -6,13 +6,9 @@ import logging
 import os
 from argparse import Namespace
 
-import numpy as np
-
 import pytorch_lightning as pl
 import torch
-from lmtuners.data.pretokenized_dataset import Collater, create_concat_dataset
 from pytorch_lamb import Lamb
-from torch.utils.data import DataLoader
 from transformers import get_linear_schedule_with_warmup
 
 logger = logging.getLogger(__name__)
@@ -21,65 +17,35 @@ logger = logging.getLogger(__name__)
 class DiscLMTrainingModuleConfig(Namespace):
     """Config class for DiscLMTrainingModule."""
     def __init__(self,
-                 data_path,
-                 max_nb_epochs=10,
+                 num_steps,
                  d_loss_weight=50,
-                 mlm=True,
-                 mlm_prob=0.15,
                  save_path=None,
-                 max_seq_len=128,
                  weight_decay=0.0,
                  learning_rate=5e-5,
                  epsilon=1e-8,
-                 warmup_steps=0,
-                 batch_size=32,
-                 num_workers=0,
-                 shuffle=True,
-                 gpus=1,
-                 accumulate_grad_batches=1):
-        super().__init__(data_path=data_path,
-                         d_loss_weight=d_loss_weight,
-                         max_nb_epochs=max_nb_epochs,
-                         mlm=mlm,
-                         mlm_prob=mlm_prob,
-                         max_seq_len=max_seq_len,
+                 save_on_val=False,
+                 warmup_steps=0):
+        super().__init__(d_loss_weight=d_loss_weight,
+                         num_steps=num_steps,
                          save_path=save_path,
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
                          epsilon=epsilon,
-                         warmup_steps=warmup_steps,
-                         batch_size=batch_size,
-                         num_workers=num_workers,
-                         shuffle=shuffle,
-                         gpus=gpus,
-                         accumulate_grad_batches=accumulate_grad_batches)
+                         save_on_val=save_on_val,
+                         warmup_steps=warmup_steps)
 
 
 class DiscLMTrainingModule(pl.LightningModule):
-    def __init__(self, generator, discriminator, tokenizer, config, checkpoint_fn=None, ddp_fn=None):
+    def __init__(self, generator, discriminator, config, checkpoint_fn=None):
         super().__init__()
 
         self.config = config
         self.hparams = config
         self.checkpoint_fn = checkpoint_fn
-        self.ddp_fn = ddp_fn
-        if ddp_fn:
-            logger.warning('ddp_fn functionality is not implemented yet.')
 
         print('set hparams:', self.hparams)
 
-        self.tokenizer = tokenizer
-
-        # get special tokens.
-        self.pad_token_id = self.tokenizer.token_to_id("[PAD]")
-        self.mask_token_id = self.tokenizer.token_to_id("[MASK]")
         self.vocab_size = generator.config.vocab_size
-
-        # configure max length and padding.
-        self.tokenizer.enable_padding(pad_id=self.pad_token_id,
-                                      max_length=config.max_seq_len)
-        self.tokenizer.enable_truncation(max_length=config.max_seq_len,
-                                         strategy='only_first')
 
         self.generator = generator
         self.discriminator = discriminator
@@ -119,35 +85,47 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         g_loss = g_out[0]
         d_loss = d_out[0]
+        g_scores = g_out[1]
         d_scores = d_out[1]
-        return g_loss, d_loss, d_scores, d_labels
+        return g_loss, d_loss, g_scores, d_scores, d_labels
 
     def training_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
+        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
+            inputs, labels, attention_mask)
 
-        preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
+        g_preds = torch.argmax(g_scores, dim=-1)
+        correct_preds = (g_preds == labels)[labels.ne(-100)]
+        g_acc = torch.sum(correct_preds).float() / correct_preds.numel()
+
+        d_preds = torch.argmax(d_scores, dim=-1)
+        d_acc = torch.sum(d_preds == d_labels).float() / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
 
-        self._log_and_step_lr()
+        self._log_lr()
 
         tensorboard_logs = {
             'train/loss': total_loss,
             'train/d_loss': d_loss,
             'train/g_loss': g_loss,
-            'train/d_acc': acc
+            'train/g_acc': g_acc,
+            'train/d_acc': d_acc
         }
         return {'loss': total_loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, attention_mask = batch
-        g_loss, d_loss, d_scores, d_labels = self.forward(inputs, labels, attention_mask)
+        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
+            inputs, labels, attention_mask)
 
-        preds = torch.argmax(d_scores, dim=-1)
-        acc = torch.sum(preds == d_labels) / np.prod(d_labels.shape)
+        g_preds = torch.argmax(g_scores, dim=-1)
+        correct_preds = (g_preds == labels)[labels.ne(-100)]
+        g_acc = torch.sum(correct_preds).float() / correct_preds.numel()
+
+        d_preds = torch.argmax(d_scores, dim=-1)
+        d_acc = torch.sum(d_preds == d_labels).float() / d_labels.numel()
 
         # weight the discriminator loss.
         total_loss = g_loss + (self.config.d_loss_weight * d_loss)
@@ -155,31 +133,26 @@ class DiscLMTrainingModule(pl.LightningModule):
             'val_loss': total_loss,
             'val_d_loss': d_loss,
             'val_g_loss': g_loss,
-            'val_d_acc': acc
+            'val_g_acc': g_acc,
+            'val_d_acc': d_acc
         }
 
     def validation_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         avg_d_loss = torch.stack([x['val_d_loss'] for x in outputs]).mean()
         avg_g_loss = torch.stack([x['val_g_loss'] for x in outputs]).mean()
+        avg_g_acc = torch.stack([x['val_g_acc'] for x in outputs]).mean()
         avg_d_acc = torch.stack([x['val_d_acc'] for x in outputs]).mean()
 
         perplexity = torch.exp(avg_g_loss)
 
-        self._save_model(self.generator.base_model, 'generator')
-        self._save_model(self.discriminator.base_model, 'discriminator')
+        if self.trainer.proc_rank == 0:
+            if self.config.save_on_val:
+                self._save_model(self.generator.base_model, 'generator')
+                self._save_model(self.discriminator.base_model, 'discriminator')
 
-        output_dir = os.path.join(self.config.save_path,
-                                  f"{self.current_epoch}-{self.global_step}")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        if hasattr(self.tokenizer, 'save_pretrained'):
-            self.tokenizer.save_pretrained(output_dir)
-        else:
-            self.tokenizer.save(output_dir, 'tokenizer')
-
-        if self.checkpoint_fn:
-            self.checkpoint_fn(self)
+            if self.checkpoint_fn:
+                self.checkpoint_fn(self)
 
         tensorboard_logs = {
             'val_loss': avg_loss,
@@ -187,6 +160,7 @@ class DiscLMTrainingModule(pl.LightningModule):
             'val/d_loss': avg_d_loss,
             'val/g_loss': avg_g_loss,
             'val/perplexity': perplexity,
+            'val/g_acc': avg_g_acc,
             'val/d_acc': avg_d_acc
         }
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
@@ -227,68 +201,31 @@ class DiscLMTrainingModule(pl.LightningModule):
             },
         ]
 
-        t_total = len(self.train_dataloader()) * self.config.max_nb_epochs * self.config.gpus
-        logger.info(f'Estimating {t_total} training steps.')
+        t_total = self.config.num_steps
 
-        optimizer = Lamb(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters,
+                         lr=self.config.learning_rate,
+                         eps=self.config.epsilon)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
             num_training_steps=t_total)
 
-        return [optimizer], [scheduler]
+        scheduler_config = {
+            'scheduler': scheduler,
+            'interval': 'step'
+        }
 
-    def _log_and_step_lr(self):
+        return [optimizer], [scheduler_config]
+
+    def _log_lr(self):
         """Logs learning rate to tensorboard.
         """
         # get LR schedulers from the pytorch-lightning trainer object.
-        scheduler = self.trainer.lr_schedulers[0]
-        scheduler.step(epoch=self.global_step)
+        scheduler = self.trainer.lr_schedulers[0]['scheduler']
+
+        # tie LR stepping to global step.
         for i, lr in enumerate(scheduler.get_lr()):
-            # add the scalar to the test_tube Experiment object.
+            # add the scalar to the Experiment object.
             self.logger.experiment.add_scalar(f'lr_{i}', lr, self.global_step)
-
-    @property
-    def is_distributed(self):
-        if hasattr(self, 'trainer') and self.trainer.distributed_backend:
-            return 'ddp' in self.trainer.distributed_backend
-        return False
-
-    def get_dataloader(self, path):
-        paths = [os.path.join(path, name) for name in os.listdir(path)]
-        dataset = create_concat_dataset(paths)
-
-        if hasattr(self, 'is_distributed') and self.is_distributed:
-            dist_sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset)
-        else:
-            dist_sampler = None
-
-        collater = Collater(mlm=self.config.mlm,
-                            mlm_prob=self.config.mlm_prob,
-                            pad_token_id=self.pad_token_id,
-                            mask_token_id=self.mask_token_id,
-                            vocab_size=self.vocab_size)
-
-        return DataLoader(dataset,
-                          batch_size=self.config.batch_size,
-                          num_workers=self.config.num_workers,
-                          collate_fn=collater,
-                          sampler=dist_sampler,
-                          shuffle=self.config.shuffle)
-
-    @pl.data_loader
-    def train_dataloader(self):
-        path = os.path.join(self.config.data_path, 'train')
-        return self.get_dataloader(path)
-
-    @pl.data_loader
-    def val_dataloader(self):
-        path = os.path.join(self.config.data_path, 'val')
-        return self.get_dataloader(path)
-
-    @pl.data_loader
-    def test_dataloader(self):
-        path = os.path.join(self.config.data_path, 'test')
-        return self.get_dataloader(path)

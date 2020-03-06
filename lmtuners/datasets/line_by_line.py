@@ -6,7 +6,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import ConcatDataset, Dataset
 
 
-class Collater():
+class LineByLineCollater():
     def __init__(self,
                  tokenizer,
                  mlm=True,
@@ -58,7 +58,7 @@ class Collater():
         return inputs
 
 
-def create_concat_dataset(tokenizer, paths):
+def create_line_by_line_dataset(tokenizer, paths):
     datasets = [LineByLineDataset(tokenizer, p) for p in paths]
     dataset = ConcatDataset(datasets)
     return dataset
