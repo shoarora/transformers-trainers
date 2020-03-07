@@ -87,7 +87,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         if self.trainer.use_tpu:
             labels = labels.cpu()
         correct_preds = sampled_tokens == labels
-        d_labels[correct_preds] = False
+        d_labels[correct_preds] = 0
         if self.trainer.use_tpu:
             d_labels = d_labels.to(device)
 
