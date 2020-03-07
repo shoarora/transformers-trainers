@@ -5,7 +5,7 @@ import torch
 from pytorch_lightning import Trainer
 from tokenizers import BertWordPieceTokenizer
 from torch.utils.data import DataLoader
-from transformers import AlbertConfig, AlbertForMaskedLM
+from transformers import AlbertConfig, AlbertForMaskedLM, BertConfig, BertForMaskedLM
 
 from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
 from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
@@ -27,7 +27,7 @@ def main(tokenizer_path,
          num_tpu_cores=None,
          distributed_backend=None,
          val_check_interval=0.25,
-         tie_encoder=False,
+         generator_type='albert',
          num_hidden_groups=1,
          mlm_prob=0.15,
          learning_rate=5e-4,
@@ -40,16 +40,28 @@ def main(tokenizer_path,
     tokenizer = BertWordPieceTokenizer(tokenizer_path)
 
     # init generator.
-    generator_config = AlbertConfig(
-        vocab_size=tokenizer._tokenizer.get_vocab_size(),
-        hidden_size=256,
-        embedding_size=128,
-        num_hidden_layers=3,
-        num_attention_heads=1,
-        num_hidden_groups=num_hidden_groups,
-        intermediate_size=1024 if tie_encoder else 256,
-        max_position_embedding=128)
-    generator = AlbertForMaskedLM(generator_config)
+    if generator_type == 'albert':
+        generator_config = AlbertConfig(
+            vocab_size=tokenizer._tokenizer.get_vocab_size(),
+            hidden_size=256,
+            embedding_size=128,
+            num_hidden_layers=3,
+            num_attention_heads=1,
+            num_hidden_groups=num_hidden_groups,
+            intermediate_size=1024,
+            max_position_embedding=128)
+        generator = AlbertForMaskedLM(generator_config)
+    elif generator_type == 'bert':
+        generator_config = BertConfig(
+            vocab_size=tokenizer._tokenizer.get_vocab_size(),
+            hidden_size=128,
+            num_hidden_layers=3,
+            num_attention_heads=1,
+            intermediate_size=256,
+            max_position_embedding=128)
+        generator = BertForMaskedLM(generator_config)
+    else:
+        raise Exception(f"invalid generator type: {generator_type}")
 
     # init discriminator.
     discriminator_config = AlbertConfig(
@@ -71,7 +83,7 @@ def main(tokenizer_path,
     tie_weights(generator.albert.embeddings.token_type_embeddings,
                 discriminator.bert.embeddings.token_type_embeddings)
 
-    if tie_encoder:
+    if generator_type == 'albert':
         discriminator.albert.encoder.albert_layer_groups = generator.albert.encoder.albert_layer_groups
 
     # init training module.
