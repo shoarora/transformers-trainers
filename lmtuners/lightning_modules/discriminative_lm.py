@@ -52,7 +52,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def forward(self, inputs, labels, attention_mask):
         # copy the variables for use with discriminator.
-        d_inputs, d_labels = inputs.clone(), labels.clone()
+        d_inputs = inputs.clone()
 
         # run masked LM.
         g_out = self.generator(inputs,
@@ -75,8 +75,8 @@ class DiscLMTrainingModule(pl.LightningModule):
         # turn mask into new target labels.  1 (True) for corrupted, 0 otherwise.
         # if the prediction was correct, mark it as uncorrupted.
         correct_preds = sampled_tokens == labels
-        d_labels[correct_preds] = False
         d_labels = mask.long()
+        d_labels[correct_preds] = 0
 
         # run token classification, predict whether each token was corrupted.
         d_out = self.discriminator(d_inputs,
