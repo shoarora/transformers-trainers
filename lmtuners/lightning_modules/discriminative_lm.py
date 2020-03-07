@@ -52,7 +52,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def forward(self, inputs, labels, attention_mask):
         # copy the variables for use with discriminator.
-        d_inputs, d_labels = inputs.clone(), labels.clone()
+        d_inputs = inputs.clone()
 
         # run masked LM.
         g_out = self.generator(inputs,
@@ -61,22 +61,27 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         # get samples from masked LM.
         sample_probs = torch.softmax(g_out[1], dim=-1, dtype=torch.float32)
+        device = sample_probs.device
+        sample_probs = sample_probs.cpu()
         sample_probs = sample_probs.view(-1, self.vocab_size)
 
         sampled_tokens = torch.multinomial(sample_probs, 1).view(-1)
         sampled_tokens = sampled_tokens.view(d_inputs.shape[0], -1)
 
         # labels have a -100 value to mask out loss from unchanged tokens.
-        mask = labels.eq(-100)
+        mask = labels.eq(-100).cpu()
 
         # replace the masked out tokens of the input with the generator predictions.
+        d_inputs = d_inputs.cpu()
         d_inputs[mask] = sampled_tokens[mask]
+        d_inputs = d_inputs.to(device)
 
         # turn mask into new target labels.  1 (True) for corrupted, 0 otherwise.
         # if the prediction was correct, mark it as uncorrupted.
-        correct_preds = sampled_tokens == labels
-        d_labels[correct_preds] = False
         d_labels = mask.long()
+        correct_preds = sampled_tokens == labels.cpu()
+        d_labels[correct_preds] = False
+        d_labels = d_labels.to(device)
 
         # run token classification, predict whether each token was corrupted.
         d_out = self.discriminator(d_inputs,
