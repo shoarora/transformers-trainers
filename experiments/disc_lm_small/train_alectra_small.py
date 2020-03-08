@@ -76,11 +76,11 @@ def main(tokenizer_path,
     discriminator = AlbertForTokenClassification(discriminator_config)
 
     # tie the embeddingg weights.
-    tie_weights(generator.albert.embeddings.word_embeddings,
+    tie_weights(generator.base_model.embeddings.word_embeddings,
                 discriminator.bert.embeddings.word_embeddings)
-    tie_weights(generator.albert.embeddings.position_embeddings,
+    tie_weights(generator.base_model.embeddings.position_embeddings,
                 discriminator.bert.embeddings.position_embeddings)
-    tie_weights(generator.albert.embeddings.token_type_embeddings,
+    tie_weights(generator.base_model.embeddings.token_type_embeddings,
                 discriminator.bert.embeddings.token_type_embeddings)
 
     if generator_type == 'albert':
