@@ -101,8 +101,8 @@ def main(tokenizer_path,
 
     try:
         print(met.metrics_report())
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
     # save the model.
     output_path = os.path.join(save_path, 'discriminator', 'final')
