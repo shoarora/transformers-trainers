@@ -89,7 +89,7 @@ def main(tokenizer_path,
     # init training module.
     training_config = DiscLMTrainingModuleConfig(max_steps,
                                                  save_path=save_path,
-                                                 weight_decay=0.1,
+                                                 weight_decay=0.01,
                                                  learning_rate=learning_rate,
                                                  epsilon=1e-6,
                                                  warmup_steps=warmup_steps)
