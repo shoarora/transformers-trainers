@@ -61,10 +61,14 @@ class DiscLMTrainingModule(pl.LightningModule):
 
         # get samples from masked LM.
         sample_probs = torch.softmax(g_out[1], dim=-1, dtype=torch.float32)
+        if self.trainer.use_tpu:
+            sample_probs = sample_probs.cpu()
         sample_probs = sample_probs.view(-1, self.vocab_size)
 
         sampled_tokens = torch.multinomial(sample_probs, 1).view(-1)
         sampled_tokens = sampled_tokens.view(d_inputs.shape[0], -1)
+        if self.trainer.use_tpu:
+            sampled_tokens = sampled_tokens.to(d_inputs.device)
 
         # labels have a -100 value to mask out loss from unchanged tokens.
         mask = labels.eq(-100)
