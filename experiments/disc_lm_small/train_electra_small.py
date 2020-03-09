@@ -14,6 +14,7 @@ from lmtuners.utils import tie_weights
 
 try:
     import torch_xla.core.xla_model as xm
+    import torch_xla.debug.metrics as met
 except ImportError:
     pass
 
@@ -97,6 +98,11 @@ def main(tokenizer_path,
 
     # train.
     trainer.fit(lightning_module, train_loader, val_loader)
+
+    try:
+        print(met.metrics_report()
+    except:
+        pass
 
     # save the model.
     output_path = os.path.join(save_path, 'discriminator', 'final')
