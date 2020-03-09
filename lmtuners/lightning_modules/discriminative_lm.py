@@ -76,7 +76,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         # if the prediction was correct, mark it as uncorrupted.
         correct_preds = sampled_tokens == labels
         d_labels = mask.long()
-        d_labels = torch.where(correct_preds, torch.zeros(d_labels.shape), d_labels)
+        d_labels = torch.where(correct_preds, torch.zeros(d_labels.shape).to(d_labels.device), d_labels)
 
         # run token classification, predict whether each token was corrupted.
         d_out = self.discriminator(d_inputs,
