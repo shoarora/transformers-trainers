@@ -136,7 +136,8 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
             mlm_prob=mlm_prob,
             pad_token_id=tokenizer.token_to_id("[PAD]"),
             mask_token_id=tokenizer.token_to_id("[MASK]"),
-            vocab_size=tokenizer._tokenizer.get_vocab_size())
+            vocab_size=tokenizer._tokenizer.get_vocab_size(),
+            rand_replace=False)
 
         return DataLoader(dataset,
                           batch_size=batch_size,

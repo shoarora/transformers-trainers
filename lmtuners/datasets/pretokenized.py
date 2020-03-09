@@ -32,13 +32,15 @@ class PreTokenizedCollater(object):
                  pad_token_id=None,
                  mask_token_id=None,
                  vocab_size=None,
-                 cls_token_id=None):
+                 cls_token_id=None,
+                 rand_replace=True):
         self.mlm = mlm
         self.mlm_prob = mlm_prob
         self.pad_token_id = pad_token_id
         self.mask_token_id = mask_token_id
         self.vocab_size = vocab_size
         self.cls_token_id = None
+        self.rand_replace = rand_replace
 
     def __call__(self, examples):
         inputs, attention_masks, special_tokens_masks = zip(*examples)
@@ -49,7 +51,8 @@ class PreTokenizedCollater(object):
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
                                          self.pad_token_id, self.mask_token_id,
-                                         self.vocab_size, self.mlm_prob)
+                                         self.vocab_size, self.mlm_prob,
+                                         rand_replace=self.rand_replace)
             return inputs, labels, attention_masks
         else:
             return inputs, inputs, attention_masks
