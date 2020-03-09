@@ -70,13 +70,13 @@ class DiscLMTrainingModule(pl.LightningModule):
         mask = labels.eq(-100)
 
         # replace the masked out tokens of the input with the generator predictions.
-        d_inputs[mask] = sampled_tokens[mask]
+        d_inputs = torch.where(mask, sampled_tokens, d_inputs)
 
         # turn mask into new target labels.  1 (True) for corrupted, 0 otherwise.
         # if the prediction was correct, mark it as uncorrupted.
         correct_preds = sampled_tokens == labels
         d_labels = mask.long()
-        d_labels[correct_preds] = 0
+        d_labels = torch.where(correct_preds, torch.zeros(d_labels.shape), d_labels)
 
         # run token classification, predict whether each token was corrupted.
         d_out = self.discriminator(d_inputs,
