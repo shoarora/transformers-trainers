@@ -100,7 +100,7 @@ def main(tokenizer_path,
     trainer.fit(lightning_module, train_loader, val_loader)
 
     try:
-        print(met.metrics_report()
+        print(met.metrics_report())
     except:
         pass
 
