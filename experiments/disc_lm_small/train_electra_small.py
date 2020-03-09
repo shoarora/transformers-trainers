@@ -1,7 +1,6 @@
 import os
 
 import fire
-import torch
 from pytorch_lightning import Trainer
 from tokenizers import BertWordPieceTokenizer
 from torch.utils.data import DataLoader
@@ -11,11 +10,6 @@ from transformers import (BertConfig, BertForMaskedLM,
 from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
 from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
 from lmtuners.utils import tie_weights
-
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    pass
 
 
 def main(tokenizer_path,
@@ -120,17 +114,6 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
         paths = [os.path.join(path, name) for name in os.listdir(path)]
         dataset = create_pretokenized_dataset(paths)
 
-        if trainer.use_ddp or trainer.use_ddp2:
-            sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        elif trainer.use_tpu:
-            sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=shuffle)
-        else:
-            sampler = None
-
         collater = PreTokenizedCollater(
             mlm=True,
             mlm_prob=mlm_prob,
@@ -143,7 +126,6 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
                           batch_size=batch_size,
                           num_workers=num_workers,
                           collate_fn=collater,
-                          sampler=sampler,
                           shuffle=shuffle)
 
     train_loader = get_dataloader(os.path.join(dataset_path, 'train'))
