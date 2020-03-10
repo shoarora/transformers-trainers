@@ -54,6 +54,7 @@ def main(tokenizer_path,
             intermediate_size=256,
             max_position_embedding=128)
         generator = BertForMaskedLM(generator_config)
+        tie_weights(generator.cls.predictions.decoder, generator.bert.embeddings.word_embeddings)
     else:
         raise Exception(f"invalid generator type: {generator_type}")
 

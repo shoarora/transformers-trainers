@@ -52,6 +52,7 @@ def main(tokenizer_path,
     discriminator = BertForTokenClassification(discriminator_config)
 
     # tie the embeddingg weights.
+    tie_weights(generator.cls.predictions.decoder, generator.bert.embeddings.word_embeddings)
     tie_weights(generator.bert.embeddings.word_embeddings,
                 discriminator.bert.embeddings.word_embeddings)
     tie_weights(generator.bert.embeddings.position_embeddings,
