@@ -52,7 +52,7 @@ class DiscLMTrainingModule(pl.LightningModule):
 
     def forward(self, inputs, labels, attention_mask):
         # copy the variables for use with discriminator.
-        d_inputs = inputs.clone()
+        d_inputs = inputs.clone().detach()
 
         # run masked LM.
         g_out = self.generator(inputs,
@@ -67,7 +67,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         sampled_tokens = sampled_tokens.view(d_inputs.shape[0], -1)
 
         # labels have a -100 value to mask out loss from unchanged tokens.
-        mask = labels.ne(-100)
+        mask = labels.ne(-100).detach()
 
         # replace the masked out tokens of the input with the generator predictions.
         d_inputs[mask] = sampled_tokens[mask]
