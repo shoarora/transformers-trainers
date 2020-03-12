@@ -43,7 +43,7 @@ def main(tokenizer_path,
             num_attention_heads=1,
             num_hidden_groups=num_hidden_groups,
             intermediate_size=1024,
-            max_position_embedding=128)
+            max_position_embeddings=128)
         generator = AlbertForMaskedLM(generator_config)
     elif generator_type == 'bert':
         generator_config = BertConfig(
@@ -52,7 +52,7 @@ def main(tokenizer_path,
             num_hidden_layers=3,
             num_attention_heads=1,
             intermediate_size=256,
-            max_position_embedding=128)
+            max_position_embeddings=128)
         generator = BertForMaskedLM(generator_config)
         tie_weights(generator.cls.predictions.decoder, generator.bert.embeddings.word_embeddings)
     else:
@@ -67,7 +67,7 @@ def main(tokenizer_path,
         num_attention_heads=4,
         num_hidden_groups=num_hidden_groups,
         intermediate_size=1024,
-        max_position_embedding=128)
+        max_position_embeddings=128)
     discriminator = AlbertForTokenClassification(discriminator_config)
 
     # tie the embeddingg weights.

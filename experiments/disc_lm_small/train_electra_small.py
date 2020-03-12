@@ -38,7 +38,7 @@ def main(tokenizer_path,
         num_hidden_layers=3,
         num_attention_heads=1,
         intermediate_size=256,
-        max_position_embedding=128)
+        max_position_embeddings=128)
     generator = BertForMaskedLM(generator_config)
 
     # init discriminator.
@@ -48,7 +48,7 @@ def main(tokenizer_path,
         num_hidden_layers=12,
         num_attention_heads=4,
         intermediate_size=1024,
-        max_position_embedding=128)
+        max_position_embeddings=128)
     discriminator = BertForTokenClassification(discriminator_config)
 
     # tie the embeddingg weights.
