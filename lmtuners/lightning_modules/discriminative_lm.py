@@ -63,7 +63,7 @@ class DiscLMTrainingModule(pl.LightningModule):
         sample_probs = torch.softmax(g_out[1], dim=-1, dtype=torch.float32)
         sample_probs = sample_probs.view(-1, self.vocab_size)
 
-        sampled_tokens = torch.multinomial(sample_probs, 1).view(-1)
+        sampled_tokens = torch.multinomial(sample_probs, 1).view(-1).detach()
         sampled_tokens = sampled_tokens.view(d_inputs.shape[0], -1)
 
         # labels have a -100 value to mask out loss from unchanged tokens.
