@@ -96,7 +96,7 @@ def main(tokenizer_path,
     # save the model.
     output_path = os.path.join(save_path, 'discriminator', 'final')
     os.makedirs(output_path, exist_ok=True)
-    lightning_module.discriminator.save_pretrained(output_path)
+    lightning_module.discriminator.base_model.save_pretrained(output_path)
     if checkpoint_fn:
         checkpoint_fn(lightning_module)
 
