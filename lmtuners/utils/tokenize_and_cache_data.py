@@ -93,7 +93,7 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
     torch.save(
         {
             'ids':
-            torch.tensor(ids, dtype=torch.int8),
+            torch.tensor(ids, dtype=torch.int16),
             'attention_masks':
             torch.tensor(attention_masks, dtype=torch.bool),
             'special_tokens_masks':
