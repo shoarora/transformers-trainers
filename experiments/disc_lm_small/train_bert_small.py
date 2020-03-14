@@ -42,7 +42,7 @@ def main(tokenizer_path,
     training_config = LMTrainingModuleConfig(max_steps,
                                              mlm=True,
                                              save_path=save_path,
-                                             weight_decay=0.1,
+                                             weight_decay=0.01,
                                              learning_rate=learning_rate,
                                              epsilon=1e-6,
                                              warmup_steps=warmup_steps)
@@ -71,6 +71,13 @@ def main(tokenizer_path,
     # train.
     trainer.fit(lightning_module, train_loader, val_loader)
 
+    # save the model.
+    output_path = os.path.join(save_path, 'final')
+    os.makedirs(output_path, exist_ok=True)
+    lightning_module.discriminator.base_model.save_pretrained(output_path)
+    if checkpoint_fn:
+        checkpoint_fn(lightning_module)
+
 
 def polyaxon_checkpoint_fn(lightning_module):
     from polyaxon_client.tracking import Experiment
@@ -90,7 +97,8 @@ def get_dataloaders(tokenizer, dataset_path, trainer, mlm_prob, batch_size,
             mlm_prob=mlm_prob,
             pad_token_id=tokenizer.token_to_id("[PAD]"),
             mask_token_id=tokenizer.token_to_id("[MASK]"),
-            vocab_size=tokenizer._tokenizer.get_vocab_size())
+            vocab_size=tokenizer._tokenizer.get_vocab_size(),
+            rand_replace=True)
 
         return DataLoader(dataset,
                           batch_size=batch_size,

@@ -58,8 +58,17 @@ class LMTrainingModule(pl.LightningModule):
         outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
         perplexity = torch.exp(loss)
+
+        preds = torch.argmax(outputs[1], dim=-1)
+        correct_preds = (preds == labels)[labels.ne(-100)]
+        acc = torch.sum(correct_preds).float() / labels.numel()
+
         self._log_lr()
-        tensorboard_logs = {'train/loss': loss, 'train/perplexity': perplexity}
+        tensorboard_logs = {
+            'train/loss': loss,
+            'train/perplexity': perplexity,
+            'train/acc': acc
+        }
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
@@ -67,27 +76,36 @@ class LMTrainingModule(pl.LightningModule):
         outputs = self.forward(inputs, labels, attention_mask)
         loss = outputs[0]
 
-        return {'val_loss': loss}
+        preds = torch.argmax(outputs[1], dim=-1)
+        correct_preds = (preds == labels)[labels.ne(-100)]
+        acc = torch.sum(correct_preds).float() / labels.numel()
+
+        return {'val_loss': loss, 'val_acc': acc}
 
     def validation_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        avg_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
 
         perplexity = torch.exp(avg_loss)
 
-        output_dir = os.path.join(self.config.save_path,
-                                  f"{self.current_epoch}-{self.global_step}")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        model_to_save = (self.model.module
-                         if hasattr(self.model, "module") else self.model)
-        model_to_save.base_model.save_pretrained(output_dir)
+        if self.trainer.proc_rank == 0:
+            if self.config.save_on_val:
+                output_dir = os.path.join(
+                    self.config.save_path,
+                    f"{self.current_epoch}-{self.global_step}")
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                model_to_save = (self.model.module if hasattr(
+                    self.model, "module") else self.model)
+                model_to_save.base_model.save_pretrained(output_dir)
 
-        if self.checkpoint_fn:
-            self.checkpoint_fn(self)
+            if self.checkpoint_fn:
+                self.checkpoint_fn(self)
 
         tensorboard_logs = {
             'val_loss': avg_loss,
             'val/loss': avg_loss,
+            'val/acc': avg_acc,
             'val/perplexity': perplexity
         }
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
@@ -123,10 +141,7 @@ class LMTrainingModule(pl.LightningModule):
             num_warmup_steps=self.config.warmup_steps,
             num_training_steps=t_total)
 
-        scheduler_config = {
-            'scheduler': scheduler,
-            'interval': 'step'
-        }
+        scheduler_config = {'scheduler': scheduler, 'interval': 'step'}
 
         return [optimizer], [scheduler_config]
 
