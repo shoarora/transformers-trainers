@@ -21,6 +21,7 @@ class LMTrainingModuleConfig(Namespace):
         learning_rate=5e-5,
         epsilon=1e-8,
         warmup_steps=0,
+        save_on_val=False,
     ):
         super().__init__(num_steps=num_steps,
                          mlm=mlm,
@@ -28,7 +29,8 @@ class LMTrainingModuleConfig(Namespace):
                          weight_decay=weight_decay,
                          learning_rate=learning_rate,
                          epsilon=epsilon,
-                         warmup_steps=warmup_steps)
+                         warmup_steps=warmup_steps,
+                         save_on_val=save_on_val)
 
 
 class LMTrainingModule(pl.LightningModule):
