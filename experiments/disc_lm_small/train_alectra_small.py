@@ -21,6 +21,7 @@ def main(tokenizer_path,
          num_tpu_cores=None,
          distributed_backend=None,
          val_check_interval=0.25,
+         val_check_percent=0.25,
          generator_type='albert',
          num_hidden_groups=1,
          mlm_prob=0.15,
@@ -29,6 +30,7 @@ def main(tokenizer_path,
          batch_size=128,
          num_workers=2,
          shuffle=True,
+         resume_from_checkpoint=None,
          use_polyaxon=False):
     # init tokenizer.  only need it for the special chars.
     tokenizer = BertWordPieceTokenizer(tokenizer_path)
@@ -103,6 +105,8 @@ def main(tokenizer_path,
                       num_tpu_cores=num_tpu_cores,
                       distributed_backend=distributed_backend,
                       max_steps=max_steps,
+                      resume_from_checkpoint=resume_from_checkpoint,
+                      val_check_percent=val_check_percent,
                       val_check_interval=val_check_interval)
 
     # init dataloaders.
