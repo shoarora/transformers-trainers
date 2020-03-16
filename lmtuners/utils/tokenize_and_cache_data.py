@@ -11,6 +11,7 @@ def tokenize_and_cache_data(data_dir,
                             tokenizer=None,
                             tokenizer_path=None,
                             n_sentences=0,
+                            use_overflow=False,
                             delete_existing=False,
                             max_length=512):
 
@@ -30,7 +31,7 @@ def tokenize_and_cache_data(data_dir,
     pbar = tqdm(os.listdir(data_dir))
     for path in pbar:
         result = process_one_file(data_dir, path, tokenizer, output_dir,
-                                  n_sentences)
+                                  n_sentences, use_overflow)
         num_examples += result['num_examples']
         num_tokens += result['num_tokens']
 
@@ -39,7 +40,7 @@ def tokenize_and_cache_data(data_dir,
         )
 
 
-def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
+def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_overflow):
     ids = []
     attention_masks = []
     special_tokens_masks = []
@@ -84,7 +85,7 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences):
         num_examples += 1
         num_tokens += sum(tokenized.attention_mask)
 
-        if tokenized.overflowing:
+        if tokenized.overflowing and use_overflow:
             for example in tokenized.overflowing:
                 add_example(example)
                 num_examples += 1
