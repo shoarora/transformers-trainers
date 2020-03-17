@@ -63,7 +63,7 @@ class LMTrainingModule(pl.LightningModule):
 
         preds = torch.argmax(outputs[1], dim=-1)
         correct_preds = (preds == labels)[labels.ne(-100)]
-        acc = torch.sum(correct_preds).float() / labels.numel()
+        acc = torch.sum(correct_preds).float() / correct_preds.numel()
 
         self._log_lr()
         tensorboard_logs = {
@@ -80,7 +80,7 @@ class LMTrainingModule(pl.LightningModule):
 
         preds = torch.argmax(outputs[1], dim=-1)
         correct_preds = (preds == labels)[labels.ne(-100)]
-        acc = torch.sum(correct_preds).float() / labels.numel()
+        acc = torch.sum(correct_preds).float() / correct_preds.numel()
 
         return {'val_loss': loss, 'val_acc': acc}
 
