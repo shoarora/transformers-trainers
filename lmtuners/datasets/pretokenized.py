@@ -11,12 +11,13 @@ class PreTokenizedFileDataset(Dataset):
         self.ids = data['ids']
         self.attention_masks = data['attention_masks']
         self.special_tokens_masks = data['special_tokens_masks']
+        self.token_type_ids = data['token_type_ids']
 
     def __len__(self):
         return len(self.ids)
 
     def __getitem__(self, i):
-        return self.ids[i], self.attention_masks[i], self.special_tokens_masks[i]
+        return self.ids[i], self.attention_masks[i], self.special_tokens_masks[i], self.token_type_ids[i]
 
 
 def create_pretokenized_dataset(paths):
@@ -43,16 +44,17 @@ class PreTokenizedCollater(object):
         self.rand_replace = rand_replace
 
     def __call__(self, examples):
-        inputs, attention_masks, special_tokens_masks = zip(*examples)
+        inputs, attention_masks, special_tokens_masks, token_type_ids = zip(*examples)
         inputs = torch.stack(inputs).long()
         attention_masks = torch.stack(attention_masks).long()
         special_tokens_masks = torch.stack(special_tokens_masks)
+        token_type_ids = torch.stack(token_type_ids)
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
                                          self.pad_token_id, self.mask_token_id,
                                          self.vocab_size, self.mlm_prob,
                                          rand_replace=self.rand_replace)
-            return inputs, labels, attention_masks
+            return inputs, labels, attention_masks, token_type_ids
         else:
-            return inputs, inputs, attention_masks
+            return inputs, inputs, attention_masks, token_type_ids

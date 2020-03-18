@@ -1,9 +1,11 @@
-import fire
 import os
+import random
+from shutil import rmtree
+
+import fire
 import torch
 from tokenizers import BertWordPieceTokenizer
 from tqdm import tqdm
-from shutil import rmtree
 
 
 def tokenize_and_cache_data(data_dir,
@@ -12,6 +14,7 @@ def tokenize_and_cache_data(data_dir,
                             tokenizer_path=None,
                             n_sentences=0,
                             use_overflow=False,
+                            two_segments=True,
                             delete_existing=False,
                             max_length=512):
 
@@ -31,7 +34,7 @@ def tokenize_and_cache_data(data_dir,
     pbar = tqdm(os.listdir(data_dir))
     for path in pbar:
         result = process_one_file(data_dir, path, tokenizer, output_dir,
-                                  n_sentences, use_overflow)
+                                  n_sentences, use_overflow, two_segments)
         num_examples += result['num_examples']
         num_tokens += result['num_tokens']
 
@@ -40,10 +43,11 @@ def tokenize_and_cache_data(data_dir,
         )
 
 
-def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_overflow):
+def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_overflow, two_segments):
     ids = []
     attention_masks = []
     special_tokens_masks = []
+    token_type_ids = []
     num_tokens = 0
     num_examples = 0
 
@@ -59,6 +63,7 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
         ids.append(encoded.ids)
         attention_masks.append(encoded.attention_mask)
         special_tokens_masks.append(encoded.special_tokens_mask)
+        token_type_ids.append([0] * len(encoded.ids))
 
     with open(os.path.join(data_dir, path)) as f:
         try:
@@ -91,6 +96,28 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
                 num_examples += 1
                 num_tokens += sum(example.attention_mask)
 
+    if two_segments:
+        new_ids = []
+        new_attention_masks = []
+        new_special_tokens_masks = []
+        new_token_type_ids = []
+        indices = list(range(len(ids)))
+        random.shuffle(indices)
+        indices = [(indices[i], indices[i+1]) for i in range(len(indices), 0, 2)]
+        for i, j in indices:
+            _ids = ids[i] + ids[j][:1]
+            _attention_mask = attention_masks[i] + attention_masks[j][:1]
+            _special_tokens_mask = special_tokens_masks[i] + special_tokens_masks[j][:1]
+            _token_type_ids = ([0] * len(ids[i])) + ([1] * len(ids[j]))
+            new_ids.append(_ids)
+            new_attention_masks.append(_attention_mask)
+            new_special_tokens_masks.append(_special_tokens_mask)
+            new_token_type_ids.append(_token_type_ids)
+        ids = new_ids
+        attention_masks = new_attention_masks
+        special_tokens_masks = new_special_tokens_masks
+        token_type_ids = new_token_type_ids
+
     torch.save(
         {
             'ids':
@@ -98,7 +125,8 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
             'attention_masks':
             torch.tensor(attention_masks, dtype=torch.bool),
             'special_tokens_masks':
-            torch.tensor(special_tokens_masks, dtype=torch.bool)
+            torch.tensor(special_tokens_masks, dtype=torch.bool),
+            'token_type_ids': torch.tensor(token_type_ids, dtype=torch.int8)
         }, output_file)
 
     return {'num_tokens': num_tokens, 'num_examples': num_examples}
