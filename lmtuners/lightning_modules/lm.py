@@ -5,7 +5,8 @@ from argparse import Namespace
 
 import pytorch_lightning as pl
 import torch
-from transformers import AdamW, get_linear_schedule_with_warmup
+from pytorch_lamb import Lamb
+from transformers import get_linear_schedule_with_warmup
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +136,9 @@ class LMTrainingModule(pl.LightningModule):
 
         t_total = self.config.num_steps
 
-        optimizer = AdamW(optimizer_grouped_parameters,
-                          lr=self.config.learning_rate,
-                          eps=self.config.epsilon)
+        optimizer = Lamb(optimizer_grouped_parameters,
+                         lr=self.config.learning_rate,
+                         eps=self.config.epsilon)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.config.warmup_steps,
