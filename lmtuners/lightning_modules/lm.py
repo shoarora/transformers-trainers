@@ -59,7 +59,7 @@ class LMTrainingModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs, labels, attention_mask, token_type_ids = batch
-        outputs = self.forward(inputs, labels, attention_mask)
+        outputs = self.forward(inputs, labels, attention_mask, token_type_ids)
         loss = outputs[0]
         perplexity = torch.exp(loss)
 
@@ -77,7 +77,7 @@ class LMTrainingModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, attention_mask, token_type_ids = batch
-        outputs = self.forward(inputs, labels, attention_mask)
+        outputs = self.forward(inputs, labels, attention_mask, token_type_ids)
         loss = outputs[0]
 
         preds = torch.argmax(outputs[1], dim=-1)
