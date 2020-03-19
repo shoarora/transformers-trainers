@@ -94,7 +94,7 @@ class DiscLMTrainingModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         inputs, labels, attention_mask, token_type_ids = batch
         g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
-            inputs, labels, attention_mask)
+            inputs, labels, attention_mask, token_type_ids)
 
         g_preds = torch.argmax(g_scores, dim=-1)
         correct_preds = (g_preds == labels)[labels.ne(-100)]
@@ -121,7 +121,7 @@ class DiscLMTrainingModule(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs, labels, attention_mask, token_type_ids = batch
         g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
-            inputs, labels, attention_mask)
+            inputs, labels, attention_mask, token_type_ids)
 
         g_preds = torch.argmax(g_scores, dim=-1)
         correct_preds = (g_preds == labels)[labels.ne(-100)]
