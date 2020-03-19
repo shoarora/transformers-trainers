@@ -48,7 +48,7 @@ class PreTokenizedCollater(object):
         inputs = torch.stack(inputs).long()
         attention_masks = torch.stack(attention_masks).long()
         special_tokens_masks = torch.stack(special_tokens_masks)
-        token_type_ids = torch.stack(token_type_ids)
+        token_type_ids = torch.stack(token_type_ids).long()
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
