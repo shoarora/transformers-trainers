@@ -45,20 +45,22 @@ class LMTrainingModule(pl.LightningModule):
 
         self.model = model
 
-    def forward(self, inputs, labels, attention_mask):
+    def forward(self, inputs, labels, attention_mask, token_type_ids):
         if self.config.mlm:
             outputs = self.model(inputs,
                                  masked_lm_labels=labels,
-                                 attention_mask=attention_mask)
+                                 attention_mask=attention_mask,
+                                 token_type_ids=token_type_ids)
         else:
             outputs = self.model(inputs,
                                  labels=labels,
-                                 attention_mask=attention_mask)
+                                 attention_mask=attention_mask,
+                                 token_type_ids=token_type_ids)
         return outputs
 
     def training_step(self, batch, batch_idx):
-        inputs, labels, attention_mask = batch
-        outputs = self.forward(inputs, labels, attention_mask)
+        inputs, labels, attention_mask, token_type_ids = batch
+        outputs = self.forward(inputs, labels, attention_mask, token_type_ids)
         loss = outputs[0]
         perplexity = torch.exp(loss)
 
@@ -75,8 +77,8 @@ class LMTrainingModule(pl.LightningModule):
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels, attention_mask = batch
-        outputs = self.forward(inputs, labels, attention_mask)
+        inputs, labels, attention_mask, token_type_ids = batch
+        outputs = self.forward(inputs, labels, attention_mask, token_type_ids)
         loss = outputs[0]
 
         preds = torch.argmax(outputs[1], dim=-1)

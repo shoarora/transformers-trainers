@@ -50,14 +50,15 @@ class DiscLMTrainingModule(pl.LightningModule):
         self.generator = generator
         self.discriminator = discriminator
 
-    def forward(self, inputs, labels, attention_mask):
+    def forward(self, inputs, labels, attention_mask, token_type_ids):
         # copy the variables for use with discriminator.
         d_inputs = inputs.clone()
 
         # run masked LM.
         g_out = self.generator(inputs,
                                masked_lm_labels=labels,
-                               attention_mask=attention_mask)
+                               attention_mask=attention_mask,
+                               token_type_ids=token_type_ids)
 
         # get samples from masked LM.
         sample_probs = torch.softmax(g_out[1], dim=-1, dtype=torch.float32)
@@ -81,7 +82,8 @@ class DiscLMTrainingModule(pl.LightningModule):
         # run token classification, predict whether each token was corrupted.
         d_out = self.discriminator(d_inputs,
                                    labels=d_labels,
-                                   attention_mask=attention_mask)
+                                   attention_mask=attention_mask,
+                                   token_type_ids=token_type_ids)
 
         g_loss = g_out[0]
         d_loss = d_out[0]
@@ -90,9 +92,9 @@ class DiscLMTrainingModule(pl.LightningModule):
         return g_loss, d_loss, g_scores, d_scores, d_labels
 
     def training_step(self, batch, batch_idx):
-        inputs, labels, attention_mask = batch
+        inputs, labels, attention_mask, token_type_ids = batch
         g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
-            inputs, labels, attention_mask)
+            inputs, labels, attention_mask, token_type_ids)
 
         g_preds = torch.argmax(g_scores, dim=-1)
         correct_preds = (g_preds == labels)[labels.ne(-100)]
@@ -117,9 +119,9 @@ class DiscLMTrainingModule(pl.LightningModule):
         return {'loss': total_loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels, attention_mask = batch
+        inputs, labels, attention_mask, token_type_ids = batch
         g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(
-            inputs, labels, attention_mask)
+            inputs, labels, attention_mask, token_type_ids)
 
         g_preds = torch.argmax(g_scores, dim=-1)
         correct_preds = (g_preds == labels)[labels.ne(-100)]
