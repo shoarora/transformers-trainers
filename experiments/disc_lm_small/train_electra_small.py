@@ -26,6 +26,7 @@ def main(tokenizer_path,
          warmup_steps=10000,
          batch_size=128,
          num_workers=2,
+         resume_from_checkpoint=None,
          shuffle=True,
          use_polyaxon=False):
     # init tokenizer.  only need it for the special chars.
@@ -82,6 +83,7 @@ def main(tokenizer_path,
                       num_tpu_cores=num_tpu_cores,
                       distributed_backend=distributed_backend,
                       max_steps=max_steps,
+                      resume_from_checkpoint=resume_from_checkpoint,
                       val_check_interval=val_check_interval)
 
     # init dataloaders.
