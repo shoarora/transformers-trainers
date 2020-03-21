@@ -11,7 +11,10 @@ class PreTokenizedFileDataset(Dataset):
         self.ids = data['ids']
         self.attention_masks = data['attention_masks']
         self.special_tokens_masks = data['special_tokens_masks']
-        self.token_type_ids = data['token_type_ids']
+        if 'token_type_ids' in data:
+            self.token_type_ids = data['token_type_ids']
+        else:
+            self.token_type_ids = [None] * len(self.ids)
 
     def __len__(self):
         return len(self.ids)
@@ -48,7 +51,11 @@ class PreTokenizedCollater(object):
         inputs = torch.stack(inputs).long()
         attention_masks = torch.stack(attention_masks).long()
         special_tokens_masks = torch.stack(special_tokens_masks)
-        token_type_ids = torch.stack(token_type_ids).long()
+
+        if token_type_ids[0] is not None:
+            token_type_ids = torch.stack(token_type_ids).long()
+        else:
+            token_type_ids = None
 
         if self.mlm:
             inputs, labels = mask_tokens(inputs, special_tokens_masks,
