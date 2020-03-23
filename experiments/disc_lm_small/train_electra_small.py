@@ -54,12 +54,12 @@ def main(tokenizer_path,
 
     # tie the embeddingg weights.
     tie_weights(generator.cls.predictions.decoder, generator.bert.embeddings.word_embeddings)
-    tie_weights(generator.bert.embeddings.word_embeddings,
-                discriminator.bert.embeddings.word_embeddings)
-    tie_weights(generator.bert.embeddings.position_embeddings,
-                discriminator.bert.embeddings.position_embeddings)
-    tie_weights(generator.bert.embeddings.token_type_embeddings,
-                discriminator.bert.embeddings.token_type_embeddings)
+    tie_weights(discriminator.bert.embeddings.word_embeddings,
+                generator.bert.embeddings.word_embeddings)
+    tie_weights(discriminator.bert.embeddings.position_embeddings,
+                generator.bert.embeddings.position_embeddings)
+    tie_weights(discriminator.bert.embeddings.token_type_embeddings,
+                generator.bert.embeddings.token_type_embeddings)
 
     # init training module.
     training_config = DiscLMTrainingModuleConfig(max_steps,
