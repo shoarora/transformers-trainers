@@ -1,1 +1,1 @@
-from .albert import AlbertForTokenClassification
+from .albert import AlbertForTokenClassification  # noqa: 401

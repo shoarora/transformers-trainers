@@ -1,5 +1,3 @@
-import numpy as np
-
 import torch
 from lmtuners.utils import mask_tokens
 from torch.nn.utils.rnn import pad_sequence
