@@ -30,6 +30,7 @@ def main(tokenizer_path,
          warmup_steps=10000,
          batch_size=128,
          num_workers=2,
+         tie_encoder=True,
          shuffle=True,
          resume_from_checkpoint=None,
          use_polyaxon=False):
@@ -87,7 +88,8 @@ def main(tokenizer_path,
     tie_weights(discriminator.base_model.embeddings.token_type_embeddings,
                 generator.base_model.embeddings.token_type_embeddings)
 
-    if generator_type == 'albert':
+    if generator_type == 'albert' and tie_encoder:
+        print('tying albert encoder layers')
         discriminator.albert.encoder.albert_layer_groups = generator.albert.encoder.albert_layer_groups
 
     # init training module.
