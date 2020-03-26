@@ -46,6 +46,9 @@ def main(tokenizer_path,
             num_attention_heads=1,
             num_hidden_groups=num_hidden_groups,
             intermediate_size=1024,
+            hidden_dropout_prob=0.1,
+            attention_probs_dropout_prob=0.1,
+            classifier_dropout_prob=0.1,
             max_position_embeddings=128)
         generator = AlbertForMaskedLM(generator_config)
     elif generator_type == 'bert':
@@ -70,6 +73,9 @@ def main(tokenizer_path,
         num_attention_heads=4,
         num_hidden_groups=num_hidden_groups,
         intermediate_size=1024,
+        hidden_dropout_prob=0.1,
+        attention_probs_dropout_prob=0.1,
+        classifier_dropout_prob=0.1,
         max_position_embeddings=128)
     discriminator = AlbertForTokenClassification(discriminator_config)
 
