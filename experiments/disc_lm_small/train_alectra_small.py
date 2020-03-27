@@ -32,6 +32,7 @@ def main(tokenizer_path,
          num_workers=2,
          tie_encoder=True,
          shuffle=True,
+         lr_schedule='linear',
          resume_from_checkpoint=None,
          use_polyaxon=False):
     # init tokenizer.  only need it for the special chars.
@@ -99,6 +100,7 @@ def main(tokenizer_path,
                                                  weight_decay=0.01,
                                                  learning_rate=learning_rate,
                                                  epsilon=1e-6,
+                                                 lr_schedule=lr_schedule,
                                                  warmup_steps=warmup_steps)
     if use_polyaxon:
         checkpoint_fn = polyaxon_checkpoint_fn
