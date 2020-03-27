@@ -9,7 +9,9 @@ from argparse import Namespace
 import pytorch_lightning as pl
 import torch
 from pytorch_lamb import Lamb
-from transformers import get_linear_schedule_with_warmup
+from transformers import (get_constant_schedule_with_warmup,
+                          get_cosine_schedule_with_warmup,
+                          get_linear_schedule_with_warmup)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                  learning_rate=5e-5,
                  epsilon=1e-8,
                  save_on_val=False,
+                 lr_schedule='linear',
                  warmup_steps=0):
         super().__init__(d_loss_weight=d_loss_weight,
                          num_steps=num_steps,
@@ -32,6 +35,7 @@ class DiscLMTrainingModuleConfig(Namespace):
                          learning_rate=learning_rate,
                          epsilon=epsilon,
                          save_on_val=save_on_val,
+                         lr_schedule=lr_schedule,
                          warmup_steps=warmup_steps)
 
 
@@ -153,7 +157,8 @@ class DiscLMTrainingModule(pl.LightningModule):
         if self.trainer.proc_rank == 0:
             if self.config.save_on_val:
                 self._save_model(self.generator.base_model, 'generator')
-                self._save_model(self.discriminator.base_model, 'discriminator')
+                self._save_model(self.discriminator.base_model,
+                                 'discriminator')
 
             if self.checkpoint_fn:
                 self.checkpoint_fn(self)
@@ -211,15 +216,21 @@ class DiscLMTrainingModule(pl.LightningModule):
                          lr=self.config.learning_rate,
                          eps=self.config.epsilon)
 
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=self.config.warmup_steps,
-            num_training_steps=t_total)
+        if self.config.lr_schedule == 'linear':
+            scheduler = get_linear_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=self.config.warmup_steps,
+                num_training_steps=t_total)
+        elif self.config.lr_schedule == 'cosine':
+            scheduler = get_cosine_schedule_with_warmup(
+                optimizer,
+                num_warmup_steps=self.config.warmup_steps,
+                num_training_steps=t_total)
+        elif self.config.lr_schedule == 'constant':
+            scheduler = get_constant_schedule_with_warmup(
+                optimizer, num_warmup_steps=self.config.warmup_steps)
 
-        scheduler_config = {
-            'scheduler': scheduler,
-            'interval': 'step'
-        }
+        scheduler_config = {'scheduler': scheduler, 'interval': 'step'}
 
         return [optimizer], [scheduler_config]
 
