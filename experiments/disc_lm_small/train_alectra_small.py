@@ -30,6 +30,7 @@ def main(tokenizer_path,
          warmup_steps=10000,
          batch_size=128,
          num_workers=2,
+         tie_embedding_proj=False,
          tie_encoder=True,
          shuffle=True,
          lr_schedule='linear',
@@ -92,6 +93,9 @@ def main(tokenizer_path,
     if generator_type == 'albert' and tie_encoder:
         print('tying albert encoder layers')
         discriminator.albert.encoder.albert_layer_groups = generator.albert.encoder.albert_layer_groups
+    if generator_type == 'albert' and tie_embedding_proj:
+        print('tying embedding projection layers')
+        discriminator.albert.encoder.embedding_hidden_mapping_in = generator.albert.encoder.embedding_hidden_mapping_in
 
     # init training module.
     training_config = DiscLMTrainingModuleConfig(max_steps,
