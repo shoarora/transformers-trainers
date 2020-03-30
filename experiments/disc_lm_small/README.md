@@ -12,7 +12,7 @@ where they use a discriminative LM task to pretrain transformers.
 ![electra task diagram](/assets/electra.png)
 (figure from paper, [Clark et al. 2020](https://openreview.net/pdf?id=r1xMH1BtvB))
 
-In this task configuration, the generator can be any `*ForMaskedLM` model and the discriminator can be any `*ForTokenClassification` model.  So we put that to the test by training a BERT model (largely equivalent to ELECTRA) and an ALBERT model.
+In this task configuration, the generator can be any `*ForMaskedLM` model and the discriminator can be any `*ForTokenClassification` model.  So we put that to the test by training a BERT model (largely equivalent to ELECTRA) and an ALBERT model, which we're referring to as ALECTRA (how creative).
 
 ## Using the models
 ```python
