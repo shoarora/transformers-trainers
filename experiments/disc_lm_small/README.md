@@ -9,6 +9,16 @@ This directory contains code for training:
 ELECTRA comes from [this paper](https://openreview.net/pdf?id=r1xMH1BtvB),
 where they use a discriminative LM task to pretrain transformers.
 
+## Using the models
+```python
+from transformers import BertForSequenceClassification, AlbertForSequenceClassification, BertTokenizer
+
+# Both models use the bert-base-uncased tokenizer and vocab.
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+electra = BertForSequenceClassification.from_pretrained('shoarora/electra-small-owt')
+alectra = AlbertForSequenceClassification.from_pretrained('shoarora/alectra-small-owt')
+```
+
 ## Data Prep
 Download and unpack the [OpenWebText corpus](https://skylion007.github.io/OpenWebTextCorpus/)
 
@@ -85,6 +95,10 @@ Notes:
 
 
 ## Results
+
+I trained these models with max-seq-length 128, similar to the official quickstart models
+in the [github repo](https://github.com/google-research/electra), so it's not fit for tasks
+that require longer lengths, like SQuAD.  So we'll limit our evaluation to just GLUE.
 
 ### GLUE
 
