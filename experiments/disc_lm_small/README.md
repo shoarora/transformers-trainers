@@ -118,7 +118,18 @@ ELECTRA:
 
 ALECTRA:
 - Performed a hyperparameter search and ended up with the following parameters:
-<!-- TODO -->
+
+| Task   | batch size | epochs | learning rate |
+| ---    | ---        | ---    | ---           |
+| CoLA   | 32         | 10     | 2e-5          |
+| MNLI   | 32         | 3      | 1e-4          |
+| MRPC   | 128        | 10     | 1e-4          |
+| QNLI   | 32         | 3      | 5e-5          |
+| QQP    | 32         | 10     | 5e-5          |
+| RTE    | 32         | 5      | 1e-4          |
+| SST    | 16         | 3      | 5e-5          |
+| STS    | 16         | 3      | 1e-4          |
+
 
 
 #### GLUE Dev results
