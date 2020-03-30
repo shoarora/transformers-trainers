@@ -9,6 +9,11 @@ This directory contains code for training:
 ELECTRA comes from [this paper](https://openreview.net/pdf?id=r1xMH1BtvB),
 where they use a discriminative LM task to pretrain transformers.
 
+![electra task diagram](/assets/electra.png)
+(figure from paper, [Clark et al. 2020](https://openreview.net/pdf?id=r1xMH1BtvB))
+
+In this task configuration, the generator can be any `*ForMaskedLM` model and the discriminator can be any `*ForTokenClassification` model.  So we put that to the test by training a BERT model (largely equivalent to ELECTRA) and an ALBERT model.
+
 ## Using the models
 ```python
 from transformers import BertForSequenceClassification, AlbertForSequenceClassification, BertTokenizer
@@ -152,3 +157,7 @@ ALECTRA:
 | ALECTRA-Small-OWT (ours) |  4M      | 43.9 | 87.9| 82.1 | 82.0 | 87.6 | 77.9 | 85.8 | 67.5|
 
 - Table initialized from [original ELECTRA paper](https://openreview.net/pdf?id=r1xMH1BtvB)
+
+## Conclusion
+ELECTRA is currently being integrated into `huggingface/transformers`.  Once the official implementation
+is in the library, I hope to revisit these experiments, and extend the usability of this code.
