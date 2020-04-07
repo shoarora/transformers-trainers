@@ -22,7 +22,6 @@ def tokenize_and_cache_data(data_dir,
         tokenizer = BertWordPieceTokenizer(tokenizer_path)
 
     tokenizer.enable_truncation(max_length=max_length)
-    tokenizer.enable_padding(max_length=max_length)
 
     num_tokens = 0
     num_examples = 0
@@ -39,7 +38,7 @@ def tokenize_and_cache_data(data_dir,
         num_tokens += result['num_tokens']
 
         pbar.set_description(
-            f"{num_tokens} tokens, {num_examples} examples, {num_tokens/(num_examples*max_length)} non-pad tokens"
+            f"{num_tokens} tokens, {num_examples} examples"
         )
 
 
@@ -121,7 +120,7 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
     torch.save(
         {
             'ids':
-            torch.tensor(ids, dtype=torch.int16),
+            torch.tensor(ids, dtype=torch.int32),
             'attention_masks':
             torch.tensor(attention_masks, dtype=torch.bool),
             'special_tokens_masks':
