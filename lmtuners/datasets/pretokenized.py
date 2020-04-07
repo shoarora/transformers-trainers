@@ -1,6 +1,8 @@
 import torch
-from lmtuners.utils import mask_tokens
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import ConcatDataset, Dataset
+
+from lmtuners.utils import mask_tokens
 
 
 class PreTokenizedFileDataset(Dataset):
@@ -47,20 +49,24 @@ class PreTokenizedCollater(object):
         self.rand_replace = rand_replace
 
     def __call__(self, examples):
-        inputs, attention_masks, special_tokens_masks, token_type_ids = zip(*examples)
-        inputs = torch.stack(inputs).long()
-        attention_masks = torch.stack(attention_masks).long()
-        special_tokens_masks = torch.stack(special_tokens_masks)
+        inputs, attention_masks, special_tokens_masks, token_type_ids = zip(
+            *examples)
+        inputs = pad_sequence(inputs, batch_first=True, padding_value=self.pad_token_id).long()
+        attention_masks = pad_sequence(attention_masks, batch_first=True, padding_value=0).long()
+        special_tokens_masks = pad_sequence(special_tokens_masks, batch_first=True, padding_value=1)
 
         if token_type_ids[0] is not None:
-            token_type_ids = torch.stack(token_type_ids).long()
+            token_type_ids = pad_sequence(token_type_ids, batch_first=True, padding_value=1).long()
         else:
             token_type_ids = None
 
         if self.mlm:
-            inputs, labels = mask_tokens(inputs, special_tokens_masks,
-                                         self.pad_token_id, self.mask_token_id,
-                                         self.vocab_size, self.mlm_prob,
+            inputs, labels = mask_tokens(inputs,
+                                         special_tokens_masks,
+                                         self.pad_token_id,
+                                         self.mask_token_id,
+                                         self.vocab_size,
+                                         self.mlm_prob,
                                          rand_replace=self.rand_replace)
             return inputs, labels, attention_masks, token_type_ids
         else:

@@ -6,6 +6,7 @@ import fire
 import torch
 from tokenizers import BertWordPieceTokenizer
 from tqdm import tqdm
+from torch.nn.utils.rnn import pad_sequence
 
 
 def tokenize_and_cache_data(data_dir,
@@ -22,7 +23,6 @@ def tokenize_and_cache_data(data_dir,
         tokenizer = BertWordPieceTokenizer(tokenizer_path)
 
     tokenizer.enable_truncation(max_length=max_length)
-    tokenizer.enable_padding(max_length=max_length)
 
     num_tokens = 0
     num_examples = 0
@@ -39,7 +39,7 @@ def tokenize_and_cache_data(data_dir,
         num_tokens += result['num_tokens']
 
         pbar.set_description(
-            f"{num_tokens} tokens, {num_examples} examples, {num_tokens/(num_examples*max_length)} non-pad tokens"
+            f"{num_tokens} tokens, {num_examples} examples"
         )
 
 
@@ -105,10 +105,10 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
         random.shuffle(indices)
         indices = [(indices[i], indices[i+1]) for i in range(0, len(indices)-1, 2)]
         for i, j in indices:
-            _ids = ids[i] + ids[j][:1]
-            _attention_mask = attention_masks[i] + attention_masks[j][:1]
-            _special_tokens_mask = special_tokens_masks[i] + special_tokens_masks[j][:1]
-            _token_type_ids = ([0] * len(ids[i])) + ([1] * len(ids[j]))
+            _ids = ids[i] + ids[j][1:]
+            _attention_mask = attention_masks[i] + attention_masks[j][1:]
+            _special_tokens_mask = special_tokens_masks[i] + special_tokens_masks[j][1:]
+            _token_type_ids = ([0] * len(ids[i])) + ([1] * len(ids[j][1:]))
             new_ids.append(_ids)
             new_attention_masks.append(_attention_mask)
             new_special_tokens_masks.append(_special_tokens_mask)
@@ -118,15 +118,17 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
         special_tokens_masks = new_special_tokens_masks
         token_type_ids = new_token_type_ids
 
+    ids = [torch.tensor(i, dtype=torch.int32) for i in ids]
+    attention_masks = [torch.tensor(i, dtype=torch.bool) for i in attention_masks]
+    special_tokens_masks = [torch.tensor(i, dtype=torch.bool) for i in special_tokens_masks]
+    token_type_ids = [torch.tensor(i, dtype=torch.int8) for i in token_type_ids]
+
     torch.save(
         {
-            'ids':
-            torch.tensor(ids, dtype=torch.int16),
-            'attention_masks':
-            torch.tensor(attention_masks, dtype=torch.bool),
-            'special_tokens_masks':
-            torch.tensor(special_tokens_masks, dtype=torch.bool),
-            'token_type_ids': torch.tensor(token_type_ids, dtype=torch.int8)
+            'ids': pad_sequence(ids, batch_first=True, padding_value=tokenizer.token_to_id('[PAD]')),
+            'attention_masks': pad_sequence(attention_masks, batch_first=True, padding_value=0),
+            'special_tokens_masks': pad_sequence(special_tokens_masks, batch_first=True, padding_value=1),
+            'token_type_ids': pad_sequence(token_type_ids, batch_first=True, padding_value=1)
         }, output_file)
 
     return {'num_tokens': num_tokens, 'num_examples': num_examples}
