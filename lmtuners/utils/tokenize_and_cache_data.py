@@ -6,6 +6,7 @@ import fire
 import torch
 from tokenizers import BertWordPieceTokenizer
 from tqdm import tqdm
+from torch.nn.utils.rnn import pad_sequence
 
 
 def tokenize_and_cache_data(data_dir,
@@ -117,15 +118,17 @@ def process_one_file(data_dir, path, tokenizer, output_dir, n_sentences, use_ove
         special_tokens_masks = new_special_tokens_masks
         token_type_ids = new_token_type_ids
 
+    ids = [torch.tensor(i, dtype=torch.int32) for i in ids]
+    attention_masks = [torch.tensor(i, dtype=torch.bool) for i in attention_masks]
+    special_tokens_masks = [torch.tensor(i, dtype=torch.bool) for i in special_tokens_masks]
+    token_type_ids = [torch.tensor(i, dtype=torch.int8) for i in token_type_ids]
+
     torch.save(
         {
-            'ids':
-            torch.tensor(ids, dtype=torch.int32),
-            'attention_masks':
-            torch.tensor(attention_masks, dtype=torch.bool),
-            'special_tokens_masks':
-            torch.tensor(special_tokens_masks, dtype=torch.bool),
-            'token_type_ids': torch.tensor(token_type_ids, dtype=torch.int8)
+            'ids': pad_sequence(ids, batch_first=True, padding_value=tokenizer.token_to_id('[PAD]')),
+            'attention_masks': pad_sequence(attention_masks, batch_first=True, padding_value=0),
+            'special_tokens_masks': pad_sequence(special_tokens_masks, batch_first=True, padding_value=1),
+            'token_type_ids': pad_sequence(token_type_ids, batch_first=True, padding_value=1)
         }, output_file)
 
     return {'num_tokens': num_tokens, 'num_examples': num_examples}

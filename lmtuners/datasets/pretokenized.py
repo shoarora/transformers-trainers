@@ -56,7 +56,7 @@ class PreTokenizedCollater(object):
         special_tokens_masks = pad_sequence(special_tokens_masks, batch_first=True, padding_value=1)
 
         if token_type_ids[0] is not None:
-            token_type_ids = torch.stack(token_type_ids).long()
+            token_type_ids = pad_sequence(token_type_ids, batch_first=True, padding_value=1).long()
         else:
             token_type_ids = None
 
