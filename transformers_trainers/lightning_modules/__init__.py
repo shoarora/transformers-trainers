@@ -1,2 +1,3 @@
-from .discriminative_lm import DiscLMTrainingModule, DiscLMTrainingModuleConfig  # noqa: F401
-from .lm import LMTrainingModule, LMTrainingModuleConfig  # noqa: F401
+from .electra_trainer import ElectraTrainer, ElectraTrainerConfig
+
+__all__ = [ElectraTrainerConfig, ElectraTrainer]
