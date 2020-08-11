@@ -1,4 +1,4 @@
-# lmtuners
+# transformers-trainers
 
 This repo contains trainers for language model pre-training tasks.
 Currently, there are two kinds:

@@ -1,5 +1,5 @@
 import torch
-from lmtuners.utils import mask_tokens
+from transformers_trainers.utils import mask_tokens
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import ConcatDataset, Dataset
 

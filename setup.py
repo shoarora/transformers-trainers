@@ -14,9 +14,9 @@ def read(filename):
 
 
 setup(
-    name="lmtuners",
+    name="transformers_trainers",
     version="0.1.0",
-    url="htts://github.com/shoarora/lmtuners",
+    url="htts://github.com/shoarora/transformers-trainers",
     license='MIT',
     author="Sho Arora",
     author_email="shoarora@cs.stanford.edu",

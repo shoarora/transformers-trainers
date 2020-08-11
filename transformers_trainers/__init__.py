@@ -1,4 +1,4 @@
-"""lmtuners - Tools for training pytorch language models"""
+"""transformers_trainers - Tools for training pytorch language models"""
 from .lightning_modules import *  # noqa: F401, F403
 from .datasets import *  # noqa: F401, F403
 

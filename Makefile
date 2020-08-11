@@ -1,4 +1,4 @@
-PROJECT_NAME=lmtuners
+PROJECT_NAME=transformers-trainers
 
 # To run 'source' and 'conda' functions in Makefile
 # SHELL=/bin/bash

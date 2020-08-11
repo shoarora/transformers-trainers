@@ -6,8 +6,8 @@ from tokenizers import BertWordPieceTokenizer
 from torch.utils.data import DataLoader
 from transformers import AlbertConfig, AlbertForMaskedLM
 
-from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
-from lmtuners import LMTrainingModule, LMTrainingModuleConfig
+from transformers_trainers.datasets import PreTokenizedCollater, create_pretokenized_dataset
+from transformers_trainers import LMTrainingModule, LMTrainingModuleConfig
 
 
 def main(tokenizer_path,

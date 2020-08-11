@@ -37,12 +37,12 @@ We create training data using BERT's normal two-segment data points (with \[SEP\
 Our data preprocessing is more crude than the official implementation: we create length-64 samples and concatenate two together.
 The original is more intelligent about processing lines and packing in examples.
 ```sh
-python -m lmtuners.utils.tokenize_and_cache_data data/ data_tokenized_128/ --tokenizer_path bert-base-uncased-vocab.txt --max_length=64
+python -m transformers_trainers.utils.tokenize_and_cache_data data/ data_tokenized_128/ --tokenizer_path bert-base-uncased-vocab.txt --max_length=64
 ```
 
 Split the datatset into train/val/test
 ```sh
-python -m lmtuners.utils.create_dataset_splits data_tokenized_128
+python -m transformers_trainers.utils.create_dataset_splits data_tokenized_128
 ```
 
 Install the requirements for experiments

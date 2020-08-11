@@ -6,10 +6,10 @@ from tokenizers import BertWordPieceTokenizer
 from torch.utils.data import DataLoader
 from transformers import AlbertConfig, AlbertForMaskedLM, BertConfig, BertForMaskedLM
 
-from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
-from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
-from lmtuners.models import AlbertForTokenClassification
-from lmtuners.utils import tie_weights
+from transformers_trainers import DiscLMTrainingModule, DiscLMTrainingModuleConfig
+from transformers_trainers.datasets import PreTokenizedCollater, create_pretokenized_dataset
+from transformers_trainers.models import AlbertForTokenClassification
+from transformers_trainers.utils import tie_weights
 
 
 def main(tokenizer_path,

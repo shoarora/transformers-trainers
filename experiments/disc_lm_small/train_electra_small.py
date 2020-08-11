@@ -7,9 +7,9 @@ from torch.utils.data import DataLoader
 from transformers import (BertConfig, BertForMaskedLM,
                           BertForTokenClassification)
 
-from lmtuners import DiscLMTrainingModule, DiscLMTrainingModuleConfig
-from lmtuners.datasets import PreTokenizedCollater, create_pretokenized_dataset
-from lmtuners.utils import tie_weights
+from transformers_trainers import DiscLMTrainingModule, DiscLMTrainingModuleConfig
+from transformers_trainers.datasets import PreTokenizedCollater, create_pretokenized_dataset
+from transformers_trainers.utils import tie_weights
 
 
 def main(tokenizer_path,
