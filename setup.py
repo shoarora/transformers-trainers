@@ -3,6 +3,7 @@ import os
 import re
 
 from setuptools import find_packages, setup
+import transformers_trainers
 
 
 def read(filename):
@@ -15,7 +16,7 @@ def read(filename):
 
 setup(
     name="transformers_trainers",
-    version="0.1.0",
+    version=transformers_trainers.__version__,
     url="htts://github.com/shoarora/transformers-trainers",
     license='MIT',
     author="Sho Arora",
@@ -24,10 +25,9 @@ setup(
     long_description=read("README.md"),
     packages=find_packages(exclude=('tests', )),
     install_requires=[
-        'transformers>=2.5.0',
-        'tokenizers>=0.5.0',
-        'fire>=0.2.1',
-        'pytorch-lightning>=0.7.0',
+        'transformers>=3.0.0',
+        'fire',
+        'pytorch-lightning>=0.8.5',
         'pytorch-lamb @ git+ssh://git@github.com/cybertronai/pytorch-lamb.git'
     ],
     classifiers=[
