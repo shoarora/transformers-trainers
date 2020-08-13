@@ -31,15 +31,16 @@ def train(cfg):
     cfg.model.discriminator_name = os.path.join(
         CWD, "model_configs", cfg.model.discriminator_name + ".json"
     )
-    print(cfg.model.generator_name)
-    print(cfg.model.discriminator_name)
+
+    tokenizer = AutoTokenizer.from_pretrained(cfg.model.tokenizer_path, use_fast=True)
     g_config = ElectraConfig.from_pretrained(cfg.model.generator_name)
     d_config = ElectraConfig.from_pretrained(cfg.model.discriminator_name)
+
+    g_config.vocab_size = tokenizer.vocab_size
+    d_config.vocab_size = tokenizer.vocab_size
+
     generator = ElectraForMaskedLM(g_config)
     discriminator = ElectraForTokenClassification(d_config)
-
-    # d_config.save_pretrained(cfg.model.tokenizer_path)
-    tokenizer = AutoTokenizer.from_pretrained(cfg.model.tokenizer_path, use_fast=True)
 
     train_cfg = ElectraTrainerConfig(**cfg.model.training)
     lightning_module = ElectraTrainer(generator, discriminator, tokenizer, train_cfg)
