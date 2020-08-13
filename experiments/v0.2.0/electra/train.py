@@ -29,6 +29,8 @@ def train(cfg):
     cfg.model.discriminator_name = os.path.join(
         get_experiment_dir(), "model_configs", cfg.model.discriminator_name + ".json"
     )
+    print(cfg.model.generator_name)
+    print(cfg.model.discriminator_name)
     g_config = ElectraConfig.from_pretrained(cfg.model.generator_name)
     d_config = ElectraConfig.from_pretrained(cfg.model.discriminator_name)
     generator = ElectraForMaskedLM(g_config)
