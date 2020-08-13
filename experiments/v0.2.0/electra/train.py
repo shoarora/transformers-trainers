@@ -45,7 +45,9 @@ def train(cfg):
 
     train_loader, val_loader = get_dataloaders(tokenizer, cfg.data)
 
-    callbacks = [HFModelSaveCallback()]
+    callbacks = [
+        # HFModelSaveCallback()
+    ]
 
     logger = get_logger(cfg.logger)
 
@@ -55,7 +57,7 @@ def train(cfg):
 
 def get_dataloaders(tokenizer, cfg):
     dataset = nlp.load_dataset(
-        cfg.dataset_name, cfg.dataset_version, split=nlp.Split.TRAIN
+        cfg.dataset_path, cfg.dataset_version, split=nlp.Split.TRAIN
     )
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])

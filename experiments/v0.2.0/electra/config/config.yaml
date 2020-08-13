@@ -24,4 +24,7 @@ trainer:
 
 logger:
   type: wandb
-  args: null
+  args:
+    name: electra-small-wikipedia
+    project: transformers-trainers-v0.2.0
+    log_model: true
