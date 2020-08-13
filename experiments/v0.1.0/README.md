@@ -1,5 +1,9 @@
 # Discriminative LM (small) Experiments
 
+These experiments were run with version `v0.1.0` of this repo.
+The code is not updated to support the current version, so check out that release tag
+if you're interested in running these.
+
 This directory contains code for training:
 
 1. a baseline BERT-small model
