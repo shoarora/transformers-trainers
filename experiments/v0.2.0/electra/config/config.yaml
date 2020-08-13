@@ -1,7 +1,7 @@
 model:
   generator_name: electra_small_generator
   discriminator_name: electra_small_discriminator
-  tokenizer_path: bert-base-uncased
+  tokenizer_path: google/electra-small-iscriminator
 
   training:
     total_steps: ${trainer.max_steps}

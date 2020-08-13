@@ -17,6 +17,7 @@ from transformers_trainers.callbacks import HFModelSaveCallback
 import nlp
 
 CONFIG_PATH = "config/config.yaml"
+CWD = os.path.dirname(os.path.abspath(__file__))
 
 
 @hydra.main(
@@ -24,10 +25,10 @@ CONFIG_PATH = "config/config.yaml"
 )
 def train(cfg):
     cfg.model.generator_name = os.path.join(
-        get_experiment_dir(), "model_configs", cfg.model.generator_name + ".json"
+        CWD, "model_configs", cfg.model.generator_name + ".json"
     )
     cfg.model.discriminator_name = os.path.join(
-        get_experiment_dir(), "model_configs", cfg.model.discriminator_name + ".json"
+        CWD, "model_configs", cfg.model.discriminator_name + ".json"
     )
     print(cfg.model.generator_name)
     print(cfg.model.discriminator_name)
@@ -36,7 +37,7 @@ def train(cfg):
     generator = ElectraForMaskedLM(g_config)
     discriminator = ElectraForTokenClassification(d_config)
 
-    d_config.save_pretrained(cfg.model.tokenizer_path)
+    # d_config.save_pretrained(cfg.model.tokenizer_path)
     tokenizer = AutoTokenizer.from_pretrained(cfg.model.tokenizer_path, use_fast=True)
 
     train_cfg = ElectraTrainerConfig(**cfg.model.training)
@@ -82,10 +83,6 @@ def get_logger(cfg):
     else:
         logger = pl.loggers.TensorBoardLogger()
     return logger
-
-
-def get_experiment_dir():
-    return os.path.dirname(__file__)
 
 
 if __name__ == "__main__":
