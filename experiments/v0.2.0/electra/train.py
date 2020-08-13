@@ -13,7 +13,7 @@ from transformers import (
 
 from transformers_trainers import ElectraTrainer, ElectraTrainerConfig
 from transformers_trainers.datasets import NlpWrapperDataset
-from transformers_trainers.utils import HFModelSaveCallback
+from transformers_trainers.callbacks import HFModelSaveCallback
 import nlp
 
 CONFIG_PATH = "config/config.yaml"
