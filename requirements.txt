@@ -2,3 +2,4 @@ transformers>=3.0.0
 fire
 pytorch-lightning>=0.8.5
 pytorch-lamb @ git+ssh://git@github.com/cybertronai/pytorch-lamb.git
+nlp
