@@ -24,6 +24,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
     config_path=CONFIG_PATH, strict=False,
 )
 def train(cfg):
+    print(cfg.pretty())
     cfg.model.generator_name = os.path.join(
         CWD, "model_configs", cfg.model.generator_name + ".json"
     )
@@ -62,7 +63,7 @@ def get_dataloaders(tokenizer, cfg):
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])
 
-    dataset = NlpWrapperDataset(dataset, tokenizer, cfg.column, cfg.block_size)
+    dataset = NlpWrapperDataset(dataset, tokenizer, cfg.column, cfg.block_size, cfg.pretokenize)
 
     collater = DataCollatorForLanguageModeling(
         tokenizer, mlm=True, mlm_probability=cfg.mlm_probability

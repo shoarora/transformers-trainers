@@ -32,7 +32,7 @@ class NlpWrapperDataset(Dataset):
             self.dataset.set_format(type="torch", columns=["input_ids"])
 
     def __len__(self):
-        return len(self.lines)
+        return len(self.dataset)
 
     def __getitem__(self, i) -> torch.Tensor:
         if self.pretokenize:

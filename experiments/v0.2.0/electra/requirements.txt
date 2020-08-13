@@ -1,3 +1,4 @@
 hydra-core
 nlp
 apache-beam
+wandb
