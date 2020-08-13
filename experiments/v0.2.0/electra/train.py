@@ -55,7 +55,7 @@ def train(cfg):
 
 def get_dataloaders(tokenizer, cfg):
     dataset = nlp.load_dataset(
-        cfg.dataset_name, version=cfg.dataset_version, split=nlp.Split.TRAIN
+        cfg.dataset_name, cfg.dataset_version, split=nlp.Split.TRAIN
     )
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import pytorch_lightning as pl
 import torch
 from pytorch_lamb import Lamb
+from argparse import Namespace
 
 from transformers_trainers.utils import get_lr_schedule
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ElectraTrainerConfig:
+class ElectraTrainerConfig(Namespace):
     d_loss_weight: float = 50
     weight_decay: float = 0.01
     learning_rate: float = 5e-4
