@@ -9,19 +9,19 @@ model:
 data:
   dataset_path: wikipedia
   dataset_version: 20200501.en
-  batch_size: 32
+  batch_size: 128
   num_workers: 4
   column: text
-  block_size: null
+  block_size: 128
   mlm_probability: 0.15
   pretokenize: false
 
 trainer:
-  gpus: 0
+  gpus: 1
   fast_dev_run: false
   max_steps: 1e6
   limit_val_batches: 0.1
-  val_check_interval: 0.1
+  val_check_interval: 0.025
 
 logger:
   type: wandb

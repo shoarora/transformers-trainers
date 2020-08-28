@@ -36,8 +36,8 @@ def train(cfg):
     g_config = ElectraConfig.from_pretrained(cfg.model.generator_name)
     d_config = ElectraConfig.from_pretrained(cfg.model.discriminator_name)
 
-    g_config.vocab_size = tokenizer.vocab_size
-    d_config.vocab_size = tokenizer.vocab_size
+    # g_config.vocab_size = tokenizer.vocab_size
+    # d_config.vocab_size = tokenizer.vocab_size
 
     generator = ElectraForMaskedLM(g_config)
     discriminator = ElectraForTokenClassification(d_config)
