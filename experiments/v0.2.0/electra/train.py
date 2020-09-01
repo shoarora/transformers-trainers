@@ -81,12 +81,27 @@ def get_dataloaders(tokenizer, cfg):
 
 def get_logger(cfg):
     if cfg.type == "wandb":
+        restore_wandb_experiment(**cfg.args)
         logger = pl.loggers.WandbLogger(**cfg.args)
     elif cfg.type == "comet":
         logger = pl.loggers.CometLogger(**cfg.args)
     else:
         logger = pl.loggers.TensorBoardLogger()
     return logger
+
+
+def restore_wandb_experiment(project=None, entity=None, version=None, **kwargs):
+    import wandb
+
+    api = wandb.Api()
+    run_path = f"{entity}/{project}/{version}"
+    try:
+        api.run(run_path)
+    except wandb.apis.CommError:
+        return
+
+    # download checkpoints dir
+    wandb.restore("checkpoints", run_path=run_path)
 
 
 if __name__ == "__main__":

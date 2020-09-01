@@ -28,4 +28,5 @@ logger:
   args:
     name: electra-small-wikipedia
     project: transformers-trainers-v0.2.0
+    entity: shoarora
     log_model: true
