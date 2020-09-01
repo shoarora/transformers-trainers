@@ -1,20 +1,17 @@
 import os
 
 import hydra
+import nlp
 import pytorch_lightning as pl
+import wandb
 from torch.utils.data import DataLoader
-from transformers import (
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
-    ElectraConfig,
-    ElectraForMaskedLM,
-    ElectraForTokenClassification,
-)
+from transformers import (AutoTokenizer, DataCollatorForLanguageModeling,
+                          ElectraConfig, ElectraForMaskedLM,
+                          ElectraForTokenClassification)
 
 from transformers_trainers import ElectraTrainer, ElectraTrainerConfig
-from transformers_trainers.datasets import NlpWrapperDataset
 from transformers_trainers.callbacks import HFModelSaveCallback
-import nlp
+from transformers_trainers.datasets import NlpWrapperDataset
 
 CONFIG_PATH = "config/config.yaml"
 CWD = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +47,8 @@ def train(cfg):
     callbacks = [
         # HFModelSaveCallback()
     ]
+    if cfg.logger.args.type == "wandb":
+        callbacks.append(WandbCheckpointCallback())
 
     logger, ckpt_path = get_logger_and_ckpt_path(cfg.logger)
 
@@ -93,7 +92,6 @@ def get_logger_and_ckpt_path(cfg):
 
 
 def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None, **kwargs):
-    import wandb
 
     api = wandb.Api()
     run_path = f"{entity}/{project}/{version}"
@@ -111,6 +109,24 @@ def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None
     restored = wandb.restore(ckpt_path, run_path=run_path)
     print("Restored checkpoint:", ckpt_path, restored.name)
     return restored.name
+
+
+class WandbCheckpointCallback(pl.Callback):
+    def __init__(self):
+        super().__init__()
+        self.logged_artifact_paths = []
+
+    @pl.utilities.rank_zero_only
+    def on_validation_end(self, trainer, pl_module):
+
+        save_dir = trainer.checkpoint_callback.dirpath
+        local_checkpoints = os.listdir(save_dir)
+
+        for path in local_checkpoints:
+            filepath = os.path.join(save_dir, path)
+            if filepath not in self.logged_artifact_paths:
+                wandb.save(filepath)
+                self.logged_artifact_paths.append(filepath)
 
 
 if __name__ == "__main__":
