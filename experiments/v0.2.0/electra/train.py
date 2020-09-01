@@ -51,9 +51,9 @@ def train(cfg):
         # HFModelSaveCallback()
     ]
 
-    logger = get_logger(cfg.logger)
+    logger, ckpt_path = get_logger_and_ckpt_path(cfg.logger)
 
-    trainer = pl.Trainer(callbacks=callbacks, logger=logger, **cfg.trainer)
+    trainer = pl.Trainer(callbacks=callbacks, logger=logger, resume_from_checkpoint=ckpt_path, **cfg.trainer)
     trainer.fit(lightning_module, train_loader, val_loader)
 
 
@@ -79,15 +79,17 @@ def get_dataloaders(tokenizer, cfg):
     return train_loader, train_loader
 
 
-def get_logger(cfg):
+def get_logger_and_ckpt_path(cfg):
     if cfg.type == "wandb":
-        restore_wandb_experiment(**cfg.args)
+        ckpt_path = restore_wandb_experiment(**cfg.args)
         logger = pl.loggers.WandbLogger(**cfg.args)
     elif cfg.type == "comet":
+        ckpt_path = None
         logger = pl.loggers.CometLogger(**cfg.args)
     else:
+        ckpt_path = None
         logger = pl.loggers.TensorBoardLogger()
-    return logger
+    return logger, ckpt_path
 
 
 def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None, **kwargs):
@@ -98,7 +100,7 @@ def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None
     try:
         run = api.run(run_path)
     except wandb.apis.CommError:
-        return
+        return None
 
     if epoch is None:
         epoch = run.summary["epoch"]
@@ -108,6 +110,7 @@ def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None
     # download checkpoints dir
     restored = wandb.restore(ckpt_path, run_path=run_path)
     print("Restored checkpoint:", ckpt_path, restored.name)
+    return restored.name
 
 
 if __name__ == "__main__":
