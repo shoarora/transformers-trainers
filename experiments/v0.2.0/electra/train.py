@@ -90,18 +90,24 @@ def get_logger(cfg):
     return logger
 
 
-def restore_wandb_experiment(project=None, entity=None, version=None, **kwargs):
+def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None, **kwargs):
     import wandb
 
     api = wandb.Api()
     run_path = f"{entity}/{project}/{version}"
     try:
-        api.run(run_path)
+        run = api.run(run_path)
     except wandb.apis.CommError:
         return
 
+    if epoch is None:
+        epoch = run.summary["epoch"]
+
+    ckpt_path = f"{project}/{version}/checkpoints/epoch={epoch}.ckpt"
+
     # download checkpoints dir
-    wandb.restore("checkpoints", run_path=run_path)
+    restored = wandb.restore(ckpt_path, run_path=run_path)
+    print("Restored checkpoint:", ckpt_path, restored.name)
 
 
 if __name__ == "__main__":
