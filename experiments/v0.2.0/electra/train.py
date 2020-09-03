@@ -47,7 +47,7 @@ def train(cfg):
     callbacks = [
         # HFModelSaveCallback()
     ]
-    if cfg.logger.args.type == "wandb":
+    if cfg.logger.type == "wandb":
         callbacks.append(WandbCheckpointCallback())
 
     logger, ckpt_path = get_logger_and_ckpt_path(cfg.logger)
