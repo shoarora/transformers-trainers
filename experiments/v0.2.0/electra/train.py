@@ -126,7 +126,7 @@ class WandbCheckpointCallback(pl.Callback):
         for path in local_checkpoints:
             filepath = os.path.join(save_dir, path)
             if filepath not in self.logged_artifact_paths:
-                print("saving")
+                print("saving", filepath)
                 wandb.save(filepath)
                 self.logged_artifact_paths.append(filepath)
 
