@@ -123,6 +123,8 @@ class WandbCheckpointCallback(pl.Callback):
         save_dir = trainer.checkpoint_callback.dirpath
         local_checkpoints = os.listdir(save_dir)
 
+        print("val end", save_dir, local_checkpoints)
+
         for path in local_checkpoints:
             filepath = os.path.join(save_dir, path)
             if filepath not in self.logged_artifact_paths:
