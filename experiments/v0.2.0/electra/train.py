@@ -114,6 +114,7 @@ def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None
 class WandbCheckpointCallback(pl.Callback):
     def __init__(self):
         super().__init__()
+        print("initalized", type(self))
         self.logged_artifact_paths = []
 
     @pl.utilities.rank_zero_only
@@ -125,6 +126,7 @@ class WandbCheckpointCallback(pl.Callback):
         for path in local_checkpoints:
             filepath = os.path.join(save_dir, path)
             if filepath not in self.logged_artifact_paths:
+                print("saving")
                 wandb.save(filepath)
                 self.logged_artifact_paths.append(filepath)
 
