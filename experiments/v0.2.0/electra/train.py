@@ -117,7 +117,7 @@ class WandbCheckpointCallback(pl.Callback):
         print("initalized", type(self))
         self.logged_artifact_paths = []
 
-    @pl.utilities.rank_zero_only
+    # @pl.utilities.rank_zero_only
     def on_validation_end(self, trainer, pl_module):
 
         save_dir = trainer.checkpoint_callback.dirpath
