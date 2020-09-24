@@ -28,3 +28,6 @@ lint:
 
 test:
 	pytest -v tests/
+
+polyaxon-init:
+	bash ./dev/polyaxon-init.sh ${PROJECT_NAME}

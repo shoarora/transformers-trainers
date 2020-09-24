@@ -1,7 +1,8 @@
+import torch
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer
-import torch
-import nlp
+
+import datasets
 
 
 class NlpWrapperDataset(Dataset):
@@ -12,7 +13,7 @@ class NlpWrapperDataset(Dataset):
 
     def __init__(
         self,
-        dataset: nlp.Dataset,
+        dataset: datasets.Dataset,
         tokenizer: PreTrainedTokenizer,
         column: str,
         block_size: int,

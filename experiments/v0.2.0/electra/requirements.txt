@@ -1,4 +1,4 @@
 hydra-core
-nlp
+datasets
 apache-beam
 wandb

@@ -22,6 +22,7 @@ trainer:
   max_steps: 1e6
   limit_val_batches: 0.1
   val_check_interval: 0.025
+  progress_bar_refresh_rate: 1000
 
 logger:
   type: wandb

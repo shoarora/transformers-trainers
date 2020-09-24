@@ -1,7 +1,7 @@
 import os
 
 import hydra
-import nlp
+import datasets
 import pytorch_lightning as pl
 import wandb
 from torch.utils.data import DataLoader
@@ -57,8 +57,8 @@ def train(cfg):
 
 
 def get_dataloaders(tokenizer, cfg):
-    dataset = nlp.load_dataset(
-        cfg.dataset_path, cfg.dataset_version, split=nlp.Split.TRAIN
+    dataset = datasets.load_dataset(
+        cfg.dataset_path, cfg.dataset_version, split=datasets.Split.TRAIN
     )
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])
@@ -92,12 +92,12 @@ def get_logger_and_ckpt_path(cfg):
 
 
 def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None, **kwargs):
-
     api = wandb.Api()
     run_path = f"{entity}/{project}/{version}"
     try:
         run = api.run(run_path)
-    except wandb.apis.CommError:
+    except Exception as e:
+        print("Wandb experiemtn not found:", e)
         return None
 
     if epoch is None:
