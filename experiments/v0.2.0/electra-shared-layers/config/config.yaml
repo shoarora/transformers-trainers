@@ -1,0 +1,38 @@
+model:
+  generator_name: electra_small_generator
+  discriminator_name: electra_small_discriminator
+  tokenizer_path: google/electra-small-discriminator
+
+  training:
+    total_steps: ${trainer.max_steps}
+    learning_rate: 1e-3
+
+layer_sharing:
+  starting_num_layers: 2
+  layer_add_rate: 5e4
+
+data:
+  dataset_path: wikipedia
+  dataset_version: 20200501.en
+  batch_size: 96
+  num_workers: 4
+  column: text
+  block_size: 128
+  mlm_probability: 0.15
+  pretokenize: false
+
+trainer:
+  gpus: 1
+  fast_dev_run: false
+  max_steps: 1e6
+  limit_val_batches: 0.1
+  val_check_interval: 0.025
+  progress_bar_refresh_rate: 1000
+
+logger:
+  type: wandb
+  args:
+    name: electra-small-layer-sharing
+    project: transformers-trainers-v0.2.0
+    entity: shoarora
+    log_model: true
