@@ -12,7 +12,7 @@ def create_tokenizer(dataset_name, dataset_version, dataset_column, tokenizer_ty
 
     filename = tempfile.mkstemp()[1]
     f = open(filename, "w")
-    dataset.map(lambda x: f.write(x[dataset_column + "\n"]))
+    dataset.map(lambda x: f.write(x[dataset_column] + "\n"))
     f.close()
 
     if tokenizer_type == "bpe":
