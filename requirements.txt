@@ -1,5 +1,5 @@
 transformers>=3.0.0
 fire
-pytorch-lightning>=0.8.5
+pytorch-lightning>=1.0.0
 git+https://github.com/cybertronai/pytorch-lamb.git
 datasets

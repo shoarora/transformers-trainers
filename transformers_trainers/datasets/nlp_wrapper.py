@@ -27,7 +27,9 @@ class NlpWrapperDataset(Dataset):
 
         if pretokenize:
             self.dataset = self.dataset.map(
-                lambda example: tokenizer.batch_encode_plus(example[column]),
+                lambda example: tokenizer.batch_encode_plus(
+                    example[column], truncation=True, max_length=self.block_size
+                ),
                 batched=True,
             )
             self.dataset.set_format(type="torch", columns=["input_ids"])
