@@ -31,7 +31,7 @@ def write_dataset_to_tempfile(dataset: datasets.Dataset, dataset_column: str, nu
     dirname = tempfile.mkdtemp()
 
     file_paths = [os.path.join(dirname, f"{i}.txt") for i in range(num_shards)]
-    file_handles = [open(path) for path in file_paths]
+    file_handles = [open(path, "w") for path in file_paths]
 
     def write_line(x):
         i = len(x[dataset_column]) % num_shards
