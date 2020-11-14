@@ -20,6 +20,7 @@ data:
   block_size: 128
   mlm_probability: 0.15
   pretokenize: true
+  debug: false
 
 trainer:
   gpus: 1

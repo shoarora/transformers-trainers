@@ -91,6 +91,9 @@ def get_dataloaders(tokenizer, cfg):
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])
 
+    if cfg.debug:
+        dataset = dataset.shard(num_shards=1000, index=0)
+
     dataset = HuggingfaceDataset(
         dataset, tokenizer, cfg.column, cfg.block_size, cfg.pretokenize
     )
