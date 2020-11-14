@@ -38,12 +38,17 @@ class ElectraTrainer(pl.LightningModule):
         # join embeddings
         self.generator.base_model.embeddings = self.discriminator.base_model.embeddings
 
-    def forward(self, inputs, labels):
+    def forward(self, input_ids, labels, attention_mask=None, token_type_ids=None):
         # copy the variables for use with discriminator.
-        d_inputs = inputs.clone()
+        d_inputs = input_ids.clone()
 
         # run masked LM.
-        g_out = self.generator(inputs, masked_lm_labels=labels,)
+        g_out = self.generator(
+            input_ids,
+            masked_lm_labels=labels,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+        )
 
         # get samples from masked LM.
         sample_probs = torch.softmax(g_out[1], dim=-1)
@@ -75,7 +80,7 @@ class ElectraTrainer(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs, labels, = batch["input_ids"], batch["labels"]
-        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(inputs, labels,)
+        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(**batch)
 
         g_preds = torch.argmax(g_scores, dim=-1)
         correct_preds = (g_preds == labels)[labels.ne(-100)]
@@ -102,7 +107,7 @@ class ElectraTrainer(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, = batch["input_ids"], batch["labels"]
-        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(inputs, labels,)
+        g_loss, d_loss, g_scores, d_scores, d_labels = self.forward(**batch)
 
         g_preds = torch.argmax(g_scores, dim=-1)
         correct_preds = (g_preds == labels)[labels.ne(-100)]
