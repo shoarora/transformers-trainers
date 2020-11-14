@@ -3,12 +3,23 @@ import tempfile
 
 import datasets
 import fire
+
 import tokenizers
+from tokenizers.processors import RobertaProcessing
 
 
-def create_tokenizer(dataset_name, dataset_version, dataset_column, tokenizer_type, output_path, vocab_size=30000):
+def create_tokenizer(
+    dataset_name,
+    dataset_version,
+    dataset_column,
+    tokenizer_type,
+    output_path,
+    vocab_size=30000,
+):
 
-    dataset = datasets.load_dataset(dataset_name, dataset_version, split=datasets.Split.TRAIN)
+    dataset = datasets.load_dataset(
+        dataset_name, dataset_version, split=datasets.Split.TRAIN
+    )
     dataset.set_format(columns=[dataset_column])
 
     dataset_paths = write_dataset_to_tempfile(dataset, dataset_column)
@@ -22,12 +33,19 @@ def create_tokenizer(dataset_name, dataset_version, dataset_column, tokenizer_ty
     else:
         raise Exception(f"Tokenizer type {tokenizer_type} unsupported.")
 
-    tokenizer.train(files=dataset_paths, vocab_size=vocab_size)
+    tokenizer.train(
+        files=dataset_paths,
+        vocab_size=vocab_size,
+        special_tokens=["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"],
+    )
+    tokenizer.post_processor = RobertaProcessing(sep=("[SEP]", 3), cls=("[CLS]", 2))
     tokenizer.save(output_path)
     print("saved tokenizer to", output_path)
 
 
-def write_dataset_to_tempfile(dataset: datasets.Dataset, dataset_column: str, num_shards=32):
+def write_dataset_to_tempfile(
+    dataset: datasets.Dataset, dataset_column: str, num_shards=32
+):
     dirname = tempfile.mkdtemp()
 
     file_paths = [os.path.join(dirname, f"{i}.txt") for i in range(num_shards)]

@@ -1,17 +1,16 @@
 import os
 
-import hydra
 import datasets
+import hydra
 import pytorch_lightning as pl
-import wandb
 from torch.utils.data import DataLoader
 from transformers import (AutoTokenizer, DataCollatorForLanguageModeling,
                           ElectraConfig, ElectraForMaskedLM,
                           ElectraForTokenClassification)
-
 from transformers_trainers import ElectraTrainer, ElectraTrainerConfig
-from transformers_trainers.callbacks import HFModelSaveCallback
 from transformers_trainers.datasets import NlpWrapperDataset
+from transformers_trainers.utils.logging import (WandbCheckpointCallback,
+                                                 get_logger_and_ckpt_path)
 
 CONFIG_PATH = "config/config.yaml"
 CWD = os.path.dirname(os.path.abspath(__file__))
@@ -52,7 +51,12 @@ def train(cfg):
 
     logger, ckpt_path = get_logger_and_ckpt_path(cfg.logger)
 
-    trainer = pl.Trainer(callbacks=callbacks, logger=logger, resume_from_checkpoint=ckpt_path, **cfg.trainer)
+    trainer = pl.Trainer(
+        callbacks=callbacks,
+        logger=logger,
+        resume_from_checkpoint=ckpt_path,
+        **cfg.trainer
+    )
     trainer.fit(lightning_module, train_loader, val_loader)
 
 
@@ -63,7 +67,9 @@ def get_dataloaders(tokenizer, cfg):
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])
 
-    dataset = NlpWrapperDataset(dataset, tokenizer, cfg.column, cfg.block_size, cfg.pretokenize)
+    dataset = NlpWrapperDataset(
+        dataset, tokenizer, cfg.column, cfg.block_size, cfg.pretokenize
+    )
 
     collater = DataCollatorForLanguageModeling(
         tokenizer, mlm=True, mlm_probability=cfg.mlm_probability
@@ -76,61 +82,6 @@ def get_dataloaders(tokenizer, cfg):
     )
 
     return train_loader, train_loader
-
-
-def get_logger_and_ckpt_path(cfg):
-    if cfg.type == "wandb":
-        ckpt_path = restore_wandb_experiment(**cfg.args)
-        logger = pl.loggers.WandbLogger(**cfg.args)
-    elif cfg.type == "comet":
-        ckpt_path = None
-        logger = pl.loggers.CometLogger(**cfg.args)
-    else:
-        ckpt_path = None
-        logger = pl.loggers.TensorBoardLogger()
-    return logger, ckpt_path
-
-
-def restore_wandb_experiment(project=None, entity=None, epoch=None, version=None, **kwargs):
-    api = wandb.Api()
-    run_path = f"{entity}/{project}/{version}"
-    try:
-        run = api.run(run_path)
-    except Exception as e:
-        print("Wandb experiemtn not found:", e)
-        return None
-
-    if epoch is None:
-        epoch = run.summary["epoch"]
-
-    ckpt_path = f"{project}/{version}/checkpoints/epoch={epoch}.ckpt"
-
-    # download checkpoints dir
-    restored = wandb.restore(ckpt_path, run_path=run_path)
-    print("Restored checkpoint:", ckpt_path, restored.name)
-    return restored.name
-
-
-class WandbCheckpointCallback(pl.Callback):
-    def __init__(self):
-        super().__init__()
-        print("initalized", type(self))
-        self.logged_artifact_paths = []
-
-    # @pl.utilities.rank_zero_only
-    def on_validation_end(self, trainer, pl_module):
-
-        save_dir = trainer.checkpoint_callback.dirpath
-        local_checkpoints = os.listdir(save_dir)
-
-        print("val end", save_dir, local_checkpoints)
-
-        for path in local_checkpoints:
-            filepath = os.path.join(save_dir, path)
-            if filepath not in self.logged_artifact_paths:
-                print("saving", filepath)
-                wandb.save(filepath)
-                self.logged_artifact_paths.append(filepath)
 
 
 if __name__ == "__main__":

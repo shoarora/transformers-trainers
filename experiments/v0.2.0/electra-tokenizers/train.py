@@ -4,16 +4,32 @@ import datasets
 import hydra
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
-from transformers import (AutoModelForMaskedLM,
-                          AutoModelForTokenClassification, AutoTokenizer,
-                          DataCollatorForLanguageModeling, ElectraConfig)
+from transformers import (
+    AutoConfig,
+    AutoModelForMaskedLM,
+    AutoModelForTokenClassification,
+    DataCollatorForLanguageModeling,
+    PreTrainedTokenizerFast,
+)
 from transformers_trainers import ElectraTrainer, ElectraTrainerConfig
-from transformers_trainers.datasets import NlpWrapperDataset
-from transformers_trainers.utils.logging import (WandbCheckpointCallback,
-                                                 get_logger_and_ckpt_path)
+from transformers_trainers.datasets import HuggingfaceDataset
+from transformers_trainers.utils.logging import (
+    WandbCheckpointCallback,
+    get_logger_and_ckpt_path,
+)
 
 CONFIG_PATH = "config/config.yaml"
 CWD = os.path.dirname(os.path.abspath(__file__))
+
+
+tokenizer = PreTrainedTokenizerFast(
+    tokenizer_file="tokenizers/wikipedia-wordpiece",
+    pad_token="[PAD]",
+    unk_token="[UNK]",
+    cls_token="[CLS]",
+    sep_token="[SEP]",
+    mask_token="[MASK]",
+)
 
 
 @hydra.main(
@@ -28,15 +44,23 @@ def train(cfg):
         CWD, "model_configs", cfg.model.discriminator_name + ".json"
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(cfg.model.tokenizer_path, use_fast=True)
-    g_config = ElectraConfig.from_pretrained(cfg.model.generator_name)
-    d_config = ElectraConfig.from_pretrained(cfg.model.discriminator_name)
+    tokenizer = PreTrainedTokenizerFast(
+        tokenizer_file=hydra.utils.to_absolute_path(cfg.model.tokenizer_path),
+        pad_token="[PAD]",
+        unk_token="[UNK]",
+        cls_token="[CLS]",
+        sep_token="[SEP]",
+        mask_token="[MASK]",
+    )
+    # tokenizer = Tokenizer.from_file(hydra.utils.to_absolute_path(cfg.model.tokenizer_path))
+    g_config = AutoConfig.from_pretrained(cfg.model.generator_name)
+    d_config = AutoConfig.from_pretrained(cfg.model.discriminator_name)
 
-    # g_config.vocab_size = tokenizer.vocab_size
-    # d_config.vocab_size = tokenizer.vocab_size
+    g_config.vocab_size = tokenizer.vocab_size
+    d_config.vocab_size = tokenizer.vocab_size
 
-    generator = AutoModelForMaskedLM(g_config)
-    discriminator = AutoModelForTokenClassification(d_config)
+    generator = AutoModelForMaskedLM.from_config(g_config)
+    discriminator = AutoModelForTokenClassification.from_config(d_config)
 
     train_cfg = ElectraTrainerConfig(**cfg.model.training)
     lightning_module = ElectraTrainer(generator, discriminator, tokenizer, train_cfg)
@@ -67,7 +91,7 @@ def get_dataloaders(tokenizer, cfg):
     print(dataset.features)
     dataset.set_format(columns=[cfg.column])
 
-    dataset = NlpWrapperDataset(
+    dataset = HuggingfaceDataset(
         dataset, tokenizer, cfg.column, cfg.block_size, cfg.pretokenize
     )
 
